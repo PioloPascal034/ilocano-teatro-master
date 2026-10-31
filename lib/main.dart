@@ -1,6 +1,9 @@
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'app/app.dart';
+
+typedef MyApp = TeatroApp;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11,26 +14,4 @@ Future<void> main() async {
   );
 
   runApp(const TeatroApp());
-}
-
-class TeatroApp extends StatelessWidget {
-  const TeatroApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Ilocano Teatro Master',
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Ilocano Teatro Master'),
-        ),
-        body: const Center(
-          child: Text(
-            'Flutter and Supabase initialized!',
-          ),
-        ),
-      ),
-    );
-  }
 }
