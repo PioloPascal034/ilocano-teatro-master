@@ -4,6 +4,7 @@
 !.env.example
 supabase.local.json
 *.sql
+!supabase/migrations/*.sql
 *.class
 *.log
 *.pyc

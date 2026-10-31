@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_routes.dart';
 import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
+import '../quiz/data/quiz_repository.dart';
+import '../quiz/models/quiz_models.dart';
 import '../prototype/prototype_widgets.dart';
 import 'data/student_learning_repository.dart';
 import 'models/learning_models.dart';
@@ -10,12 +13,14 @@ import 'models/learning_models.dart';
 class StudentProgressScreen extends StatefulWidget {
   const StudentProgressScreen({
     required this.repository,
+    required this.quizRepository,
     required this.onNavigate,
     required this.onNavigateWithPayload,
     super.key,
   });
 
   final StudentLearningRepository repository;
+  final QuizRepository quizRepository;
   final ValueChanged<AppDestination> onNavigate;
   final void Function(AppDestination, Object?) onNavigateWithPayload;
 
@@ -119,31 +124,15 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
                 ),
               ),
           const SizedBox(height: 18),
-          TeatroCard(
-            padding: const EdgeInsets.all(17),
-            child: Row(
-              children: [
-                const Icon(Icons.quiz_outlined, color: TeatroColors.muted),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Quiz results will appear here after quiz tracking is implemented.',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: TeatroColors.muted),
+          _QuizProgressCard(
+            repository: widget.quizRepository,
+            onOpenQuizzes: () => widget.onNavigate(AppDestination.quiz),
+            onContinue: continueRoute == null
+                ? null
+                : () => widget.onNavigateWithPayload(
+                    AppDestination.lesson,
+                    continueRoute,
                   ),
-                ),
-                if (continueRoute != null)
-                  DemoPrimaryButton(
-                    label: 'Continue',
-                    icon: Icons.arrow_forward,
-                    onPressed: () => widget.onNavigateWithPayload(
-                      AppDestination.lesson,
-                      continueRoute,
-                    ),
-                  ),
-              ],
-            ),
           ),
         ],
       );
@@ -486,3 +475,127 @@ class _ProgressEmpty extends StatelessWidget {
     ),
   );
 }
+
+class _QuizProgressCard extends StatefulWidget {
+  const _QuizProgressCard({
+    required this.repository,
+    required this.onOpenQuizzes,
+    required this.onContinue,
+  });
+
+  final QuizRepository repository;
+  final VoidCallback onOpenQuizzes;
+  final VoidCallback? onContinue;
+
+  @override
+  State<_QuizProgressCard> createState() => _QuizProgressCardState();
+}
+
+class _QuizProgressCardState extends State<_QuizProgressCard> {
+  late Future<List<QuizAttempt>> _attempts;
+
+  @override
+  void initState() {
+    super.initState();
+    _attempts = widget.repository.loadMyAttempts();
+  }
+
+  void _retry() => setState(() {
+    _attempts = widget.repository.loadMyAttempts();
+  });
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<List<QuizAttempt>>(
+    future: _attempts,
+    builder: (context, snapshot) {
+      final scores =
+          snapshot.data?.map((attempt) => attempt.score).toList() ??
+          const <double>[];
+      final average = scores.isEmpty
+          ? null
+          : scores.reduce((total, score) => total + score) / scores.length;
+      return TeatroCard(
+        padding: const EdgeInsets.all(17),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 600;
+            final info = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const TeatroEyebrow('QUIZ PERFORMANCE'),
+                const SizedBox(height: 5),
+                Text(
+                  'Your knowledge checks',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 5),
+                if (snapshot.hasError)
+                  Text(
+                    'Quiz history could not be loaded. ${_quizError(snapshot.error!)}',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: TeatroColors.error),
+                  )
+                else if (!snapshot.hasData)
+                  const LinearProgressIndicator()
+                else if (scores.isEmpty)
+                  Text(
+                    'No completed quiz attempts yet.',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: TeatroColors.muted),
+                  )
+                else
+                  Text(
+                    '${scores.length} completed attempt(s) · Average ${average!.toStringAsFixed(1)}%',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: TeatroColors.muted),
+                  ),
+              ],
+            );
+            final actions = Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                if (snapshot.hasError)
+                  TextButton.icon(
+                    onPressed: _retry,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Retry'),
+                  ),
+                DemoActionButton(
+                  label: 'Browse quizzes',
+                  icon: Icons.quiz_outlined,
+                  onPressed: widget.onOpenQuizzes,
+                ),
+                if (widget.onContinue != null)
+                  DemoPrimaryButton(
+                    label: 'Continue learning',
+                    icon: Icons.arrow_forward,
+                    onPressed: widget.onContinue,
+                  ),
+              ],
+            );
+            return compact
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [info, const SizedBox(height: 12), actions],
+                  )
+                : Row(
+                    children: [
+                      Expanded(child: info),
+                      const SizedBox(width: 12),
+                      actions,
+                    ],
+                  );
+          },
+        ),
+      );
+    },
+  );
+}
+
+String _quizError(Object error) => error is PostgrestException
+    ? error.message
+    : 'Please check your connection and try again.';

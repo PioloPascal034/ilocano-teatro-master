@@ -10,9 +10,12 @@ import '../profile/user_profile_repository.dart';
 import '../profile/user_profile_screen.dart';
 import '../teacher/data/teacher_student_progress_repository.dart';
 import '../teacher/teacher_student_progress_screen.dart';
+import '../teacher/data/curriculum_repository.dart';
+import '../teacher/teacher_curriculum_screen.dart';
+import '../quiz/data/quiz_repository.dart';
+import '../quiz/student_quiz_screen.dart';
 import 'demo_content.dart';
 import 'student_creation_screens.dart';
-import 'student_learning_screens.dart' show KnowledgeCheckScreen;
 import 'student_other_screens.dart' show StudentNotificationsScreen;
 import 'student_story_screens.dart';
 import 'teacher_screens.dart';
@@ -26,6 +29,8 @@ class PrototypeDestinationScreen extends StatelessWidget {
     required this.learningRepository,
     required this.profileRepository,
     required this.teacherProgressRepository,
+    required this.curriculumRepository,
+    required this.quizRepository,
     required this.onProfileUpdated,
     this.arguments,
     this.profile,
@@ -39,6 +44,8 @@ class PrototypeDestinationScreen extends StatelessWidget {
   final StudentLearningRepository learningRepository;
   final UserProfileRepository profileRepository;
   final TeacherStudentProgressRepository teacherProgressRepository;
+  final CurriculumRepository curriculumRepository;
+  final QuizRepository quizRepository;
   final ValueChanged<UserProfile> onProfileUpdated;
   final UserProfile? profile;
   final Object? arguments;
@@ -66,7 +73,11 @@ class PrototypeDestinationScreen extends StatelessWidget {
           onNavigate: onNavigate,
           onNavigateWithPayload: onNavigateWithPayload,
         ),
-        AppDestination.quiz => KnowledgeCheckScreen(onNavigate: onNavigate),
+        AppDestination.quiz => StudentQuizScreen(
+          repository: quizRepository,
+          onNavigate: onNavigate,
+          initialQuizId: arguments is String ? arguments as String : null,
+        ),
         AppDestination.storyVault => StoryVaultScreen(
           onNavigate: onNavigate,
           onOpenStory: (story) =>
@@ -98,6 +109,7 @@ class PrototypeDestinationScreen extends StatelessWidget {
         ),
         AppDestination.progress => StudentProgressScreen(
           repository: learningRepository,
+          quizRepository: quizRepository,
           onNavigate: onNavigate,
           onNavigateWithPayload: onNavigateWithPayload,
         ),
@@ -132,7 +144,9 @@ class PrototypeDestinationScreen extends StatelessWidget {
       AppDestination.studentProgress => TeacherStudentProgressScreen(
         repository: teacherProgressRepository,
       ),
-      AppDestination.learningContent => const LearningContentScreen(),
+      AppDestination.learningContent => TeacherCurriculumScreen(
+        repository: curriculumRepository,
+      ),
       AppDestination.notifications => const TeacherNotificationsScreen(),
       AppDestination.profile => UserProfileScreen(
         role: role,

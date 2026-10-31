@@ -7,6 +7,8 @@ import 'package:ilocano_teatro_master/features/dashboard/models/student_dashboar
 import 'package:ilocano_teatro_master/features/shell/app_shell.dart';
 import 'support/fake_student_learning_repository.dart';
 import 'support/fake_identity_repositories.dart';
+import 'support/fake_curriculum_repository.dart';
+import 'support/fake_quiz_repository.dart';
 
 class _RouteObserver extends NavigatorObserver {
   int replacements = 0;
@@ -63,6 +65,8 @@ void main() {
             role: role == AppRole.student ? 'student' : 'teacher',
           ),
           teacherProgressRepository: FakeTeacherStudentProgressRepository(),
+          curriculumRepository: FakeCurriculumRepository(),
+          quizRepository: FakeQuizRepository(),
         ),
       ),
     );

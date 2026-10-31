@@ -9,6 +9,8 @@ import '../learning/data/student_learning_repository.dart';
 import '../profile/user_profile.dart';
 import '../profile/user_profile_repository.dart';
 import '../teacher/data/teacher_student_progress_repository.dart';
+import '../teacher/data/curriculum_repository.dart';
+import '../quiz/data/quiz_repository.dart';
 import '../prototype/prototype_destination_screen.dart';
 
 class AppShell extends StatefulWidget {
@@ -19,6 +21,8 @@ class AppShell extends StatefulWidget {
     this.learningRepository,
     this.profileRepository,
     this.teacherProgressRepository,
+    this.curriculumRepository,
+    this.quizRepository,
     super.key,
   });
 
@@ -28,6 +32,8 @@ class AppShell extends StatefulWidget {
   final StudentLearningRepository? learningRepository;
   final UserProfileRepository? profileRepository;
   final TeacherStudentProgressRepository? teacherProgressRepository;
+  final CurriculumRepository? curriculumRepository;
+  final QuizRepository? quizRepository;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -39,6 +45,8 @@ class _AppShellState extends State<AppShell> {
   late StudentLearningRepository _learningRepository;
   late UserProfileRepository _profileRepository;
   late TeacherStudentProgressRepository _teacherProgressRepository;
+  late CurriculumRepository _curriculumRepository;
+  late QuizRepository _quizRepository;
   UserProfile? _profile;
 
   @override
@@ -51,6 +59,9 @@ class _AppShellState extends State<AppShell> {
     _teacherProgressRepository =
         widget.teacherProgressRepository ??
         SupabaseTeacherStudentProgressRepository();
+    _curriculumRepository =
+        widget.curriculumRepository ?? SupabaseCurriculumRepository();
+    _quizRepository = widget.quizRepository ?? SupabaseQuizRepository();
     _loadProfile();
   }
 
@@ -252,6 +263,8 @@ class _AppShellState extends State<AppShell> {
       learningRepository: _learningRepository,
       profileRepository: _profileRepository,
       teacherProgressRepository: _teacherProgressRepository,
+      curriculumRepository: _curriculumRepository,
+      quizRepository: _quizRepository,
       profile: _profile,
       onProfileUpdated: (profile) => setState(() => _profile = profile),
       onNavigate: _navigate,

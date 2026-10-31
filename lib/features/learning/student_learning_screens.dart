@@ -58,6 +58,15 @@ class _StudentLearningScreenState extends State<StudentLearningScreen> {
             description:
                 '${catalog.modules.length} published learning modules are available to you.',
           ),
+          Align(
+            alignment: Alignment.centerRight,
+            child: DemoActionButton(
+              label: 'Knowledge checks',
+              icon: Icons.quiz_outlined,
+              onPressed: () => widget.onNavigate(AppDestination.quiz),
+            ),
+          ),
+          const SizedBox(height: 11),
           if (catalog.modules.isEmpty)
             const DemoEmptyState(
               title: 'No published modules yet',

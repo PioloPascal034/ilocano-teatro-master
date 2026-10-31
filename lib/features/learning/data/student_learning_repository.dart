@@ -80,7 +80,9 @@ class SupabaseStudentLearningRepository implements StudentLearningRepository {
 
     final modules = moduleRows.map((row) {
       final id = row['module_id'] as String;
-      final lessons = lessonsByModule[id] ?? const <LearningLesson>[];
+      final lessons = List<LearningLesson>.of(
+        lessonsByModule[id] ?? const <LearningLesson>[],
+      );
       lessons.sort((a, b) => a.lessonOrder.compareTo(b.lessonOrder));
       return LearningModule(
         id: id,

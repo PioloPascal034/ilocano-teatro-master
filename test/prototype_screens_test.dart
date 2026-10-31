@@ -6,8 +6,11 @@ import 'package:ilocano_teatro_master/features/dashboard/data/student_dashboard_
 import 'package:ilocano_teatro_master/features/dashboard/models/student_dashboard_data.dart';
 import 'package:ilocano_teatro_master/features/shell/app_shell.dart';
 import 'package:ilocano_teatro_master/features/teacher/data/teacher_student_progress_repository.dart';
+import 'package:ilocano_teatro_master/features/quiz/models/quiz_models.dart';
 import 'support/fake_student_learning_repository.dart';
 import 'support/fake_identity_repositories.dart';
+import 'support/fake_curriculum_repository.dart';
+import 'support/fake_quiz_repository.dart';
 
 class _EmptyDashboardDataSource implements StudentDashboardDataSource {
   @override
@@ -32,6 +35,7 @@ Future<void> _pumpShell(
   AppRole role, {
   Size size = const Size(1280, 900),
   FakeUserProfileRepository? profileRepository,
+  FakeQuizRepository? quizRepository,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
@@ -58,6 +62,8 @@ Future<void> _pumpShell(
             ),
           ],
         ),
+        curriculumRepository: FakeCurriculumRepository(),
+        quizRepository: quizRepository ?? FakeQuizRepository(),
       ),
     ),
   );
@@ -159,11 +165,12 @@ void main() {
       await _tap(tester, 'Close');
 
       await _tap(tester, 'Learning Content');
-      expect(find.text('APPROVED CURRICULUM · DEMO DATA'), findsOneWidget);
-      await _tap(tester, 'View module');
-      expect(find.text('LESSON PREVIEW'), findsOneWidget);
-      await _tap(tester, 'Roles in a Theater Production');
-      expect(find.text('Roles in a Theater Production'), findsWidgets);
+      expect(find.text('Learning content'), findsWidgets);
+      expect(find.text('Create module'), findsOneWidget);
+      await _tap(tester, 'Manage lessons');
+      await _tap(tester, 'Preview');
+      expect(find.textContaining('LESSON PREVIEW'), findsOneWidget);
+      expect(find.text('First lesson content.'), findsOneWidget);
     },
   );
 
@@ -216,6 +223,51 @@ void main() {
     expect(find.text('Ari Rivera'), findsOneWidget);
   });
 
+  testWidgets('My Learning opens the Supabase-backed quiz route', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await _pumpShell(tester, AppRole.student);
+
+    await _tap(tester, 'My Learning');
+    await _tap(tester, 'Knowledge checks');
+    expect(find.text('Theater Basics'), findsOneWidget);
+    await _tap(tester, 'Start quiz');
+    expect(find.text('Which answer is correct?'), findsOneWidget);
+  });
+
+  testWidgets('student progress shows saved quiz attempt statistics', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await _pumpShell(
+      tester,
+      AppRole.student,
+      quizRepository: FakeQuizRepository(
+        attempts: [
+          QuizAttempt(
+            id: 'attempt-previous',
+            quizId: 'quiz-1',
+            score: 82,
+            completedAt: DateTime(2026, 10, 31),
+          ),
+        ],
+      ),
+    );
+
+    await _tap(tester, 'My Progress');
+    expect(find.textContaining('1 completed attempt'), findsOneWidget);
+    expect(find.textContaining('82.0%'), findsOneWidget);
+    expect(
+      find.text(
+        'Quiz results will appear here after quiz tracking is implemented.',
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets('teacher review and content fit mobile width', (tester) async {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -229,7 +281,8 @@ void main() {
     expect(tester.takeException(), isNull);
     await _tap(tester, 'More');
     await _tap(tester, 'Learning Content');
-    expect(find.textContaining('APPROVED CURRICULUM'), findsOneWidget);
+    expect(find.text('Learning content'), findsWidgets);
+    expect(find.text('Create module'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _tap(tester, 'More');
     await _tap(tester, 'Profile');
