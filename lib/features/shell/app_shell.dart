@@ -11,6 +11,7 @@ import '../profile/user_profile_repository.dart';
 import '../teacher/data/teacher_student_progress_repository.dart';
 import '../teacher/data/curriculum_repository.dart';
 import '../quiz/data/quiz_repository.dart';
+import '../quiz/data/quiz_management_repository.dart';
 import '../prototype/prototype_destination_screen.dart';
 
 class AppShell extends StatefulWidget {
@@ -23,6 +24,7 @@ class AppShell extends StatefulWidget {
     this.teacherProgressRepository,
     this.curriculumRepository,
     this.quizRepository,
+    this.quizManagementRepository,
     super.key,
   });
 
@@ -34,6 +36,7 @@ class AppShell extends StatefulWidget {
   final TeacherStudentProgressRepository? teacherProgressRepository;
   final CurriculumRepository? curriculumRepository;
   final QuizRepository? quizRepository;
+  final QuizManagementRepository? quizManagementRepository;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -47,6 +50,7 @@ class _AppShellState extends State<AppShell> {
   late TeacherStudentProgressRepository _teacherProgressRepository;
   late CurriculumRepository _curriculumRepository;
   late QuizRepository _quizRepository;
+  late QuizManagementRepository _quizManagementRepository;
   UserProfile? _profile;
 
   @override
@@ -62,6 +66,8 @@ class _AppShellState extends State<AppShell> {
     _curriculumRepository =
         widget.curriculumRepository ?? SupabaseCurriculumRepository();
     _quizRepository = widget.quizRepository ?? SupabaseQuizRepository();
+    _quizManagementRepository =
+        widget.quizManagementRepository ?? SupabaseQuizManagementRepository();
     _loadProfile();
   }
 
@@ -265,6 +271,7 @@ class _AppShellState extends State<AppShell> {
       teacherProgressRepository: _teacherProgressRepository,
       curriculumRepository: _curriculumRepository,
       quizRepository: _quizRepository,
+      quizManagementRepository: _quizManagementRepository,
       profile: _profile,
       onProfileUpdated: (profile) => setState(() => _profile = profile),
       onNavigate: _navigate,

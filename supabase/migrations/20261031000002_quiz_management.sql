@@ -38,6 +38,11 @@ grant insert (question_id, option_text, is_correct, display_order)
 grant update (option_text, is_correct)
   on public.question_options to authenticated;
 
+-- Attempts and answer snapshots are written only by the server-side submit RPC.
+-- Preserve trusted service_role permissions by not revoking them here.
+revoke insert, update, delete on public.quiz_attempts, public.quiz_answers
+  from public, anon, authenticated;
+
 -- Existing published-only policies remain. These policies add visibility and
 -- writes only for designated Curriculum Editors.
 drop policy if exists quizzes_curriculum_editor_read on public.quizzes;
@@ -143,6 +148,11 @@ as $$
 declare
   question_count integer;
 begin
+  if (select auth.uid()) is not null
+     and not (select public.is_curriculum_editor()) then
+    raise exception 'Curriculum editor permission required'
+      using errcode = '42501';
+  end if;
   if new.is_published then
     select count(*)::integer into question_count
     from public.quiz_questions q
@@ -194,6 +204,11 @@ declare
   has_attempts boolean;
   content_changed boolean;
 begin
+  if (select auth.uid()) is not null
+     and not (select public.is_curriculum_editor()) then
+    raise exception 'Curriculum editor permission required'
+      using errcode = '42501';
+  end if;
   content_changed := row(new.module_id, new.title, new.description, new.passing_score)
     is distinct from row(old.module_id, old.title, old.description, old.passing_score);
 
@@ -234,9 +249,16 @@ declare
   quiz_published boolean;
   has_attempts boolean;
 begin
-  if tg_op = 'UPDATE' and new.quiz_id is distinct from old.quiz_id then
-    raise exception 'A question cannot be moved to another quiz'
-      using errcode = '55000';
+  if (select auth.uid()) is not null
+     and not (select public.is_curriculum_editor()) then
+    raise exception 'Curriculum editor permission required'
+      using errcode = '42501';
+  end if;
+  if tg_op = 'UPDATE' then
+    if new.quiz_id is distinct from old.quiz_id then
+      raise exception 'A question cannot be moved to another quiz'
+        using errcode = '55000';
+    end if;
   end if;
   if tg_op = 'DELETE' then
     target_quiz_id := old.quiz_id;
@@ -288,9 +310,16 @@ declare
   quiz_published boolean;
   has_attempts boolean;
 begin
-  if tg_op = 'UPDATE' and new.question_id is distinct from old.question_id then
-    raise exception 'An answer option cannot be moved to another question'
-      using errcode = '55000';
+  if (select auth.uid()) is not null
+     and not (select public.is_curriculum_editor()) then
+    raise exception 'Curriculum editor permission required'
+      using errcode = '42501';
+  end if;
+  if tg_op = 'UPDATE' then
+    if new.question_id is distinct from old.question_id then
+      raise exception 'An answer option cannot be moved to another question'
+        using errcode = '55000';
+    end if;
   end if;
   if tg_op = 'DELETE' then
     target_question_id := old.question_id;
@@ -499,6 +528,13 @@ begin
   if (select auth.uid()) is null then
     raise exception 'Authentication required';
   end if;
+  if not exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.role = 'student'
+  ) then
+    raise exception 'Only student accounts may submit quizzes'
+      using errcode = '42501';
+  end if;
 
   select q.module_id into target_module_id
   from public.quizzes q
@@ -582,6 +618,8 @@ commit;
 --   join public.quizzes q on q.quiz_id=qq.quiz_id where not q.is_published; -- 0
 -- select has_column_privilege('authenticated','public.question_options',
 --   'is_correct','SELECT'); -- false
+-- select has_table_privilege('authenticated','public.quiz_attempts','UPDATE'); -- false
+-- select has_table_privilege('authenticated','public.quiz_answers','INSERT'); -- false
 -- select count(*) from public.quiz_attempts where student_id <> auth.uid(); -- 0
 -- rollback;
 --

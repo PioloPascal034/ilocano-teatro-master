@@ -13,6 +13,7 @@ import '../teacher/teacher_student_progress_screen.dart';
 import '../teacher/data/curriculum_repository.dart';
 import '../teacher/teacher_curriculum_screen.dart';
 import '../quiz/data/quiz_repository.dart';
+import '../quiz/data/quiz_management_repository.dart';
 import '../quiz/student_quiz_screen.dart';
 import 'demo_content.dart';
 import 'student_creation_screens.dart';
@@ -31,6 +32,7 @@ class PrototypeDestinationScreen extends StatelessWidget {
     required this.teacherProgressRepository,
     required this.curriculumRepository,
     required this.quizRepository,
+    required this.quizManagementRepository,
     required this.onProfileUpdated,
     this.arguments,
     this.profile,
@@ -46,6 +48,7 @@ class PrototypeDestinationScreen extends StatelessWidget {
   final TeacherStudentProgressRepository teacherProgressRepository;
   final CurriculumRepository curriculumRepository;
   final QuizRepository quizRepository;
+  final QuizManagementRepository quizManagementRepository;
   final ValueChanged<UserProfile> onProfileUpdated;
   final UserProfile? profile;
   final Object? arguments;
@@ -146,6 +149,7 @@ class PrototypeDestinationScreen extends StatelessWidget {
       ),
       AppDestination.learningContent => TeacherCurriculumScreen(
         repository: curriculumRepository,
+        quizManagementRepository: quizManagementRepository,
       ),
       AppDestination.notifications => const TeacherNotificationsScreen(),
       AppDestination.profile => UserProfileScreen(

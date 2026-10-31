@@ -6,11 +6,18 @@ import '../../core/widgets/teatro_widgets.dart';
 import '../prototype/prototype_widgets.dart';
 import 'data/curriculum_repository.dart';
 import 'models/curriculum_models.dart';
+import '../quiz/data/quiz_management_repository.dart';
+import '../quiz/teacher_quiz_management_screen.dart';
 
 class TeacherCurriculumScreen extends StatefulWidget {
-  const TeacherCurriculumScreen({required this.repository, super.key});
+  const TeacherCurriculumScreen({
+    required this.repository,
+    this.quizManagementRepository,
+    super.key,
+  });
 
   final CurriculumRepository repository;
+  final QuizManagementRepository? quizManagementRepository;
 
   @override
   State<TeacherCurriculumScreen> createState() =>
@@ -242,6 +249,13 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
             ],
           ),
         ),
+        if (widget.quizManagementRepository != null) ...[
+          const SizedBox(height: 14),
+          TeacherQuizManagementScreen(
+            moduleId: module.id,
+            repository: widget.quizManagementRepository!,
+          ),
+        ],
         if (preview != null) ...[
           const SizedBox(height: 18),
           _LessonPreview(module: module, lesson: preview),
