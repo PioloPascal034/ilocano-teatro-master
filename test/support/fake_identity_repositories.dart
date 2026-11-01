@@ -1,26 +1,46 @@
+import 'dart:typed_data';
+
 import 'package:ilocano_teatro_master/features/profile/user_profile.dart';
 import 'package:ilocano_teatro_master/features/profile/user_profile_repository.dart';
+import 'package:ilocano_teatro_master/features/profile/profile_avatar_validator.dart';
 import 'package:ilocano_teatro_master/features/teacher/data/teacher_student_progress_repository.dart';
 
 class FakeUserProfileRepository implements UserProfileRepository {
-  FakeUserProfileRepository({String role = 'student'})
-    : profile = UserProfile(
-        id: 'test-user',
-        email: role == 'student'
-            ? 'student@example.test'
-            : 'teacher@example.test',
-        fullName: role == 'student' ? 'Test Student' : 'Test Teacher',
-        role: role,
-        school: 'Test School',
-        yearLevel: role == 'student' ? 'Grade 10' : null,
-        section: role == 'student' ? 'Rizal' : null,
-        department: role == 'teacher' ? 'Languages' : null,
-      );
+  FakeUserProfileRepository({
+    String role = 'student',
+    this.failAvatarUpload = false,
+    this.failAvatarSave = false,
+    this.failAvatarDelete = false,
+  }) : profile = UserProfile(
+         id: 'test-user',
+         email: role == 'student'
+             ? 'student@example.test'
+             : 'teacher@example.test',
+         fullName: role == 'student' ? 'Test Student' : 'Test Teacher',
+         role: role,
+         school: 'Test School',
+         yearLevel: role == 'student' ? 'Grade 10' : null,
+         section: role == 'student' ? 'Rizal' : null,
+         department: role == 'teacher' ? 'Languages' : null,
+       );
 
   UserProfile profile;
+  final Map<String, Uint8List> avatarFiles = {};
+  bool failAvatarUpload;
+  bool failAvatarSave;
+  bool failAvatarDelete;
+  int avatarUploadCount = 0;
+  int avatarDeleteCount = 0;
+  final List<String?> profilePathsWhenDeleting = [];
 
   @override
-  Future<UserProfile> loadCurrentProfile() async => profile;
+  Future<UserProfile> loadCurrentProfile() async {
+    final path = profile.avatarStoragePath;
+    return profile.withAvatar(
+      storagePath: path,
+      bytes: path == null ? null : avatarFiles[path],
+    );
+  }
 
   @override
   Future<UserProfile> updateCurrentProfile({
@@ -39,8 +59,40 @@ class FakeUserProfileRepository implements UserProfileRepository {
       yearLevel: yearLevel,
       section: section,
       department: department,
+      avatarUrl: profile.avatarUrl,
+      avatarStoragePath: profile.avatarStoragePath,
     );
-    return profile;
+    return loadCurrentProfile();
+  }
+
+  @override
+  Future<String> uploadAvatar(Uint8List bytes) async {
+    avatarUploadCount++;
+    if (failAvatarUpload) throw StateError('Avatar upload failed');
+    final format = ProfileAvatarValidator.validate(bytes);
+    final path = '${profile.id}/avatar_$avatarUploadCount.${format.extension}';
+    avatarFiles[path] = bytes;
+    return path;
+  }
+
+  @override
+  Future<void> saveAvatarStoragePath(String? storagePath) async {
+    if (failAvatarSave) throw StateError('Avatar profile save failed');
+    if (storagePath != null && !storagePath.startsWith('${profile.id}/')) {
+      throw StateError('Avatar path does not belong to this account');
+    }
+    profile = profile.withAvatar(storagePath: storagePath);
+  }
+
+  @override
+  Future<void> deleteAvatar(String storagePath) async {
+    avatarDeleteCount++;
+    profilePathsWhenDeleting.add(profile.avatarStoragePath);
+    if (failAvatarDelete) throw StateError('Avatar cleanup failed');
+    if (!storagePath.startsWith('${profile.id}/')) {
+      throw StateError('Avatar path does not belong to this account');
+    }
+    avatarFiles.remove(storagePath);
   }
 }
 

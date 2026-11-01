@@ -1,11 +1,18 @@
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/app_routes.dart';
 import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
 import '../../core/widgets/teatro_design_widgets.dart';
+import 'profile_avatar.dart';
+import 'profile_avatar_validator.dart';
 import 'user_profile.dart';
 import 'user_profile_repository.dart';
+
+typedef ProfileAvatarPicker = Future<Uint8List?> Function();
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({
@@ -13,6 +20,7 @@ class UserProfileScreen extends StatefulWidget {
     required this.repository,
     required this.onProfileUpdated,
     this.onSignOut,
+    this.avatarPicker,
     this.initialProfile,
     super.key,
   });
@@ -21,6 +29,7 @@ class UserProfileScreen extends StatefulWidget {
   final UserProfileRepository repository;
   final ValueChanged<UserProfile> onProfileUpdated;
   final Future<void> Function()? onSignOut;
+  final ProfileAvatarPicker? avatarPicker;
   final UserProfile? initialProfile;
 
   @override
@@ -37,7 +46,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   late Future<UserProfile> _future;
   bool _editing = false;
   bool _saving = false;
+  bool _photoBusy = false;
+  Uint8List? _pendingAvatar;
   String? _error;
+  String? _photoError;
   String? _hydratedId;
 
   Future<void> _confirmSignOut() async {
@@ -134,6 +146,219 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
+  Future<void> _chooseAvatar() async {
+    try {
+      final injectedPicker = widget.avatarPicker;
+      Uint8List bytes;
+      if (injectedPicker != null) {
+        final selected = await injectedPicker();
+        if (selected == null) return;
+        bytes = selected;
+      } else {
+        final file = await FilePicker.pickFile(type: FileType.image);
+        if (file == null) return;
+        final fileLength = await file.length();
+        if (fileLength != null &&
+            fileLength > ProfileAvatarValidator.maxBytes) {
+          throw const FormatException('Images must be 5 MiB or smaller.');
+        }
+        bytes = await file.readAsBytes();
+      }
+      ProfileAvatarValidator.validate(bytes);
+      if (!mounted) return;
+      setState(() {
+        _pendingAvatar = bytes;
+        _photoError = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _photoError = _message(error));
+    }
+  }
+
+  Future<void> _uploadAvatar(UserProfile profile) async {
+    final bytes = _pendingAvatar;
+    if (bytes == null || _photoBusy) return;
+    setState(() {
+      _photoBusy = true;
+      _photoError = null;
+    });
+
+    String? newPath;
+    var pathPersisted = false;
+    try {
+      newPath = await widget.repository.uploadAvatar(bytes);
+      await widget.repository.saveAvatarStoragePath(newPath);
+      pathPersisted = true;
+
+      final refreshed = await widget.repository.loadCurrentProfile();
+      if (refreshed.avatarStoragePath != newPath) {
+        throw StateError('The saved profile photo could not be confirmed.');
+      }
+      if (!mounted) return;
+      _publishProfile(refreshed);
+
+      final previousPath = profile.avatarStoragePath;
+      if (previousPath != null && previousPath != newPath) {
+        try {
+          await widget.repository.deleteAvatar(previousPath);
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Photo updated. The previous image could not be cleaned up.',
+                ),
+              ),
+            );
+          }
+        }
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile photo updated.')));
+    } catch (error) {
+      if (!pathPersisted && newPath != null) {
+        try {
+          final savedAfterError = await widget.repository.loadCurrentProfile();
+          if (savedAfterError.avatarStoragePath == newPath) {
+            // The update may have committed even if its response was lost.
+            // Confirm persisted state before deciding whether cleanup is safe.
+            pathPersisted = true;
+            if (mounted) {
+              _publishProfile(savedAfterError);
+              final previousPath = profile.avatarStoragePath;
+              var cleanupFailed = false;
+              if (previousPath != null && previousPath != newPath) {
+                try {
+                  await widget.repository.deleteAvatar(previousPath);
+                } catch (_) {
+                  cleanupFailed = true;
+                }
+              }
+              if (!mounted) return;
+              setState(() {
+                _pendingAvatar = null;
+                _photoBusy = false;
+                _photoError = null;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    cleanupFailed
+                        ? 'Photo updated. The previous image could not be cleaned up.'
+                        : 'Profile photo updated.',
+                  ),
+                ),
+              );
+              return;
+            }
+          } else {
+            await widget.repository.deleteAvatar(newPath);
+          }
+        } catch (_) {
+          // If the commit state cannot be read, keep both objects so the
+          // previous avatar cannot be lost or the new reference broken.
+        }
+      }
+      if (!mounted) return;
+      if (pathPersisted && newPath != null) {
+        // Persistence succeeded but refresh failed. Keep the current device and
+        // header consistent with the path already stored in Supabase.
+        _publishProfile(profile.withAvatar(storagePath: newPath, bytes: bytes));
+        setState(() {
+          _photoError =
+              'Photo saved, but the profile could not refresh. The old image was kept.';
+          _pendingAvatar = null;
+          _photoBusy = false;
+        });
+      } else {
+        setState(() {
+          _photoError = _message(error);
+          _photoBusy = false;
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _pendingAvatar = null;
+        _photoBusy = false;
+        _photoError = null;
+      });
+    }
+  }
+
+  Future<void> _removeAvatar(UserProfile profile) async {
+    final oldPath = profile.avatarStoragePath;
+    if (oldPath == null || _photoBusy) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Remove profile photo?'),
+        content: const Text('Your initials will be shown instead.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Remove photo'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() {
+      _photoBusy = true;
+      _photoError = null;
+    });
+    var pathPersisted = false;
+    try {
+      await widget.repository.saveAvatarStoragePath(null);
+      pathPersisted = true;
+      final refreshed = await widget.repository.loadCurrentProfile();
+      if (refreshed.avatarStoragePath != null) {
+        throw StateError('The profile photo removal could not be confirmed.');
+      }
+      if (!mounted) return;
+      _publishProfile(refreshed);
+      await widget.repository.deleteAvatar(oldPath);
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile photo removed.')));
+    } catch (error) {
+      if (!mounted) return;
+      if (pathPersisted) {
+        _publishProfile(profile.withAvatar(storagePath: null, bytes: null));
+        setState(() {
+          _photoError =
+              'Photo removed from your profile, but the old file could not be cleaned up.';
+          _photoBusy = false;
+        });
+      } else {
+        setState(() {
+          _photoError = _message(error);
+          _photoBusy = false;
+        });
+      }
+      return;
+    }
+    if (mounted) setState(() => _photoBusy = false);
+  }
+
+  void _publishProfile(UserProfile profile) {
+    widget.onProfileUpdated(profile);
+    setState(() {
+      _future = Future.value(profile);
+    });
+  }
+
   @override
   Widget build(BuildContext context) => FutureBuilder<UserProfile>(
     future: _future,
@@ -167,6 +392,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final student = widget.role == AppRole.student;
       final role = student ? 'Student' : 'Teacher / Reviewer';
       final compact = MediaQuery.sizeOf(context).width < 600;
+      final displayedProfile = _pendingAvatar == null
+          ? profile
+          : profile.withAvatar(
+              storagePath: profile.avatarStoragePath,
+              bytes: _pendingAvatar,
+            );
       return TeatroPageBody(
         eyebrow: student ? 'STUDENT PROFILE' : 'TEACHER / REVIEWER PROFILE',
         title: 'Profile',
@@ -182,16 +413,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 builder: (context, constraints) {
                   final identity = Row(
                     children: [
-                      CircleAvatar(
-                        radius: compact ? 27 : 33,
-                        backgroundColor: const Color(0xFFDCA77D),
-                        child: Text(
-                          profile.initials,
-                          style: const TextStyle(
-                            color: Color(0xFF69371F),
-                            fontWeight: FontWeight.w800,
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          ProfileAvatar(
+                            profile: displayedProfile,
+                            size: compact ? 54 : 66,
+                            backgroundColor: const Color(0xFFDCA77D),
+                            foregroundColor: const Color(0xFF69371F),
                           ),
-                        ),
+                          Positioned(
+                            right: -3,
+                            bottom: -3,
+                            child: Material(
+                              color: TeatroColors.rust,
+                              shape: const CircleBorder(),
+                              child: IconButton(
+                                tooltip: 'Change photo',
+                                visualDensity: VisualDensity.compact,
+                                constraints: const BoxConstraints.tightFor(
+                                  width: 32,
+                                  height: 32,
+                                ),
+                                padding: EdgeInsets.zero,
+                                onPressed: _photoBusy ? null : _chooseAvatar,
+                                color: Colors.white,
+                                icon: const Icon(Icons.camera_alt_outlined),
+                                iconSize: 17,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -219,6 +471,40 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               _display(profile.email),
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(color: const Color(0xFFD4DCD4)),
+                            ),
+                            Wrap(
+                              spacing: 3,
+                              runSpacing: 0,
+                              children: [
+                                TextButton.icon(
+                                  onPressed: _photoBusy ? null : _chooseAvatar,
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFFFFD6C2),
+                                    visualDensity: VisualDensity.compact,
+                                  ),
+                                  icon: const Icon(
+                                    Icons.photo_camera_outlined,
+                                    size: 16,
+                                  ),
+                                  label: Text('Change Photo'),
+                                ),
+                                if (profile.avatarStoragePath != null &&
+                                    _pendingAvatar == null)
+                                  TextButton.icon(
+                                    onPressed: _photoBusy
+                                        ? null
+                                        : () => _removeAvatar(profile),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: const Color(0xFFFFD6C2),
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      size: 16,
+                                    ),
+                                    label: const Text('Remove Photo'),
+                                  ),
+                              ],
                             ),
                           ],
                         ),
@@ -255,7 +541,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             : () => setState(() => _editing = true),
                       ),
                       OutlinedButton.icon(
-                        onPressed: _saving ? null : _confirmSignOut,
+                        onPressed: _saving || _photoBusy
+                            ? null
+                            : _confirmSignOut,
                         icon: const Icon(Icons.logout, size: 17),
                         label: const Text('Sign Out'),
                       ),
@@ -280,6 +568,64 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             ),
             SizedBox(height: compact ? 10 : 14),
+            if (_pendingAvatar != null || _photoError != null || _photoBusy)
+              TeatroCard(
+                padding: EdgeInsets.all(compact ? 13 : 17),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_photoBusy) ...[
+                      const LinearProgressIndicator(),
+                      const SizedBox(height: 9),
+                      const Text('Saving profile photo…'),
+                    ],
+                    if (_pendingAvatar != null && !_photoBusy) ...[
+                      const Text('Preview your photo before uploading.'),
+                      const SizedBox(height: 8),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: ClipOval(
+                          child: Image.memory(
+                            _pendingAvatar!,
+                            width: 76,
+                            height: 76,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) =>
+                                ProfileAvatar(profile: profile, size: 76),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          OutlinedButton(
+                            onPressed: () =>
+                                setState(() => _pendingAvatar = null),
+                            child: const Text('Cancel'),
+                          ),
+                          FilledButton.icon(
+                            onPressed: () => _uploadAvatar(profile),
+                            icon: const Icon(Icons.cloud_upload_outlined),
+                            label: const Text('Upload Photo'),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (_photoError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          _photoError!,
+                          style: TextStyle(color: TeatroColors.error),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            if (_pendingAvatar != null || _photoError != null || _photoBusy)
+              SizedBox(height: compact ? 10 : 14),
             TeatroCard(
               padding: EdgeInsets.all(compact ? 15 : 22),
               child: Form(
@@ -400,5 +746,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       value == null || value.trim().isEmpty ? 'Not provided' : value.trim();
   String _message(Object error) => error is StateError
       ? error.message
+      : error is FormatException
+      ? error.message.toString()
       : 'Please check your connection and try again.';
 }

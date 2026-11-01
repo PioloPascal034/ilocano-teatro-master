@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 class UserProfile {
   const UserProfile({
     required this.id,
@@ -9,6 +11,8 @@ class UserProfile {
     this.section,
     this.department,
     this.avatarUrl,
+    this.avatarStoragePath,
+    this.avatarBytes,
   });
 
   final String id;
@@ -20,6 +24,23 @@ class UserProfile {
   final String? section;
   final String? department;
   final String? avatarUrl;
+  final String? avatarStoragePath;
+  final Uint8List? avatarBytes;
+
+  UserProfile withAvatar({String? storagePath, Uint8List? bytes}) =>
+      UserProfile(
+        id: id,
+        email: email,
+        fullName: fullName,
+        role: role,
+        school: school,
+        yearLevel: yearLevel,
+        section: section,
+        department: department,
+        avatarUrl: avatarUrl,
+        avatarStoragePath: storagePath,
+        avatarBytes: bytes,
+      );
 
   String get firstName {
     final normalized = fullName.trim();
@@ -53,5 +74,6 @@ class UserProfile {
     section: row['section'] as String?,
     department: row['department'] as String?,
     avatarUrl: row['avatar_url'] as String?,
+    avatarStoragePath: row['avatar_storage_path'] as String?,
   );
 }

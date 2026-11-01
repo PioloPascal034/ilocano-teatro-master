@@ -9,6 +9,7 @@ import '../dashboard/student_dashboard.dart';
 import '../learning/data/student_learning_repository.dart';
 import '../profile/user_profile.dart';
 import '../profile/user_profile_repository.dart';
+import '../profile/profile_avatar.dart';
 import '../teacher/data/teacher_student_progress_repository.dart';
 import '../teacher/data/curriculum_repository.dart';
 import '../teacher/data/teacher_review_repository.dart';
@@ -745,17 +746,8 @@ class _UserAvatar extends StatelessWidget {
   final UserProfile? profile;
 
   @override
-  Widget build(BuildContext context) => CircleAvatar(
-    radius: size / 2,
-    backgroundColor: const Color(0xFFE5C4AE),
-    child: Text(
-      profile?.initials ?? '?',
-      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-        color: const Color(0xFF804123),
-        fontSize: 10,
-      ),
-    ),
-  );
+  Widget build(BuildContext context) =>
+      ProfileAvatar(profile: profile, size: size);
 }
 
 String _pageTitle(AppDestination destination) => switch (destination) {
