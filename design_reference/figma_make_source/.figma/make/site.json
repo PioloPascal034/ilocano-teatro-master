@@ -1,0 +1,11 @@
+{
+  "title": "Ilocano Theatro Master",
+  "description": "An interactive learning platform for students to explore theater, Ilocano storytelling, and playwriting, track progress, and apply lessons to develop original stage play themes.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

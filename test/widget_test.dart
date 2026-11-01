@@ -1,30 +1,52 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:ilocano_teatro_master/main.dart';
+import 'package:ilocano_teatro_master/app/app_routes.dart';
+import 'package:ilocano_teatro_master/app/app_theme.dart';
+import 'package:ilocano_teatro_master/features/dashboard/models/student_dashboard_data.dart';
+import 'package:ilocano_teatro_master/features/shell/app_shell.dart';
+import 'support/fake_identity_repositories.dart';
+import 'support/fake_student_learning_repository.dart';
+import 'support/fake_curriculum_repository.dart';
+import 'support/fake_quiz_repository.dart';
+import 'support/fake_theme_draft_repository.dart';
+import 'support/fake_student_dashboard_data_source.dart';
+import 'support/fake_teacher_review_repository.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('student app shell renders shared identity and empty learning', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(1280, 900);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: AppShell(
+          role: AppRole.student,
+          dashboardDataSource: FakeStudentDashboardDataSource(
+            profile: const StudentDashboardProfile(
+              fullName: 'Ignored fallback',
+            ),
+          ),
+          learningRepository: FakeStudentLearningRepository(),
+          profileRepository: FakeUserProfileRepository(),
+          teacherProgressRepository: FakeTeacherStudentProgressRepository(),
+          curriculumRepository: FakeCurriculumRepository(),
+          quizRepository: FakeQuizRepository(),
+          themeDraftRepository: FakeThemeDraftRepository(),
+          teacherReviewRepository: FakeTeacherReviewRepository(
+            assignedStudentIds: const {},
+            submissions: const [],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Welcome back, Test.'), findsOneWidget);
+    expect(find.text('Test Student'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

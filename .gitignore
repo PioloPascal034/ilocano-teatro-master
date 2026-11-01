@@ -1,4 +1,10 @@
 # Miscellaneous
+# Local environment files; keep an explicitly named example template trackable.
+.env*
+!.env.example
+supabase.local.json
+*.sql
+!supabase/migrations/*.sql
 *.class
 *.log
 *.pyc
