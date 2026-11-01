@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/student_dashboard_data.dart';
+import '../../drafts/data/theme_draft_repository.dart';
 
 abstract interface class StudentDashboardDataSource {
   Future<StudentDashboardProfile> loadProfile();
@@ -11,10 +12,12 @@ abstract interface class StudentDashboardDataSource {
 }
 
 class SupabaseStudentDashboardDataSource implements StudentDashboardDataSource {
-  SupabaseStudentDashboardDataSource({SupabaseClient? client})
-    : _client = client ?? Supabase.instance.client;
+  SupabaseStudentDashboardDataSource({SupabaseClient? client, ThemeDraftRepository? draftRepository})
+    : _client = client ?? Supabase.instance.client,
+      _draftRepository = draftRepository ?? SupabaseThemeDraftRepository(client: client);
 
   final SupabaseClient _client;
+  final ThemeDraftRepository _draftRepository;
 
   String get _studentId {
     final user = _client.auth.currentUser;
@@ -159,20 +162,14 @@ class SupabaseStudentDashboardDataSource implements StudentDashboardDataSource {
 
   @override
   Future<List<StudentRecentDraft>> loadRecentDrafts() async {
-    final rows = await _client
-        .from('theme_drafts')
-        .select('draft_id, title, status, updated_at, central_message')
-        .eq('student_id', _studentId)
-        .order('updated_at', ascending: false)
-        .limit(3);
-    return rows.map((row) {
-      final draft = Map<String, dynamic>.from(row);
+    final drafts = await _draftRepository.listDrafts();
+    return drafts.take(3).map((draft) {
       return StudentRecentDraft(
-        id: draft['draft_id'] as String,
-        title: draft['title'] as String? ?? '',
-        status: draft['status'] as String? ?? 'draft',
-        updatedAt: DateTime.parse(draft['updated_at'] as String),
-        centralMessage: draft['central_message'] as String?,
+        id: draft.id,
+        title: draft.title,
+        status: draft.status,
+        updatedAt: draft.updatedAt,
+        centralMessage: draft.centralMessage,
       );
     }).toList();
   }

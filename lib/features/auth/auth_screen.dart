@@ -362,20 +362,12 @@ class _Brand extends StatelessWidget {
   Widget build(BuildContext context) => Row(
     mainAxisSize: MainAxisSize.min,
     children: [
-      ClipPath(
-        clipper: const _HexagonClipper(),
-        child: Container(
-          width: 40,
-          height: 40,
-          color: TeatroColors.rust,
-          alignment: Alignment.center,
-          child: Text(
-            'T',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: Colors.white),
-          ),
-        ),
+      Image.asset(
+        'assets/branding/applogo.png',
+        width: 40,
+        height: 40,
+        fit: BoxFit.contain,
+        semanticLabel: 'Ilocano Teatro Master logo',
       ),
       const SizedBox(width: 11),
       Text.rich(
@@ -392,23 +384,6 @@ class _Brand extends StatelessWidget {
       ),
     ],
   );
-}
-
-class _HexagonClipper extends CustomClipper<Path> {
-  const _HexagonClipper();
-
-  @override
-  Path getClip(Size size) => Path()
-    ..moveTo(size.width / 2, 0)
-    ..lineTo(size.width, size.height * .25)
-    ..lineTo(size.width, size.height * .75)
-    ..lineTo(size.width / 2, size.height)
-    ..lineTo(0, size.height * .75)
-    ..lineTo(0, size.height * .25)
-    ..close();
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
 class _AccessCard extends StatelessWidget {

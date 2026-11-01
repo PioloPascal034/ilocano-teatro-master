@@ -12,6 +12,7 @@ import '../teacher/data/teacher_student_progress_repository.dart';
 import '../teacher/data/curriculum_repository.dart';
 import '../quiz/data/quiz_repository.dart';
 import '../quiz/data/quiz_management_repository.dart';
+import '../drafts/data/theme_draft_repository.dart';
 import '../prototype/prototype_destination_screen.dart';
 
 class AppShell extends StatefulWidget {
@@ -25,6 +26,7 @@ class AppShell extends StatefulWidget {
     this.curriculumRepository,
     this.quizRepository,
     this.quizManagementRepository,
+    this.themeDraftRepository,
     super.key,
   });
 
@@ -37,6 +39,7 @@ class AppShell extends StatefulWidget {
   final CurriculumRepository? curriculumRepository;
   final QuizRepository? quizRepository;
   final QuizManagementRepository? quizManagementRepository;
+  final ThemeDraftRepository? themeDraftRepository;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -51,6 +54,7 @@ class _AppShellState extends State<AppShell> {
   late CurriculumRepository _curriculumRepository;
   late QuizRepository _quizRepository;
   late QuizManagementRepository _quizManagementRepository;
+  late ThemeDraftRepository _themeDraftRepository;
   UserProfile? _profile;
 
   @override
@@ -68,6 +72,8 @@ class _AppShellState extends State<AppShell> {
     _quizRepository = widget.quizRepository ?? SupabaseQuizRepository();
     _quizManagementRepository =
         widget.quizManagementRepository ?? SupabaseQuizManagementRepository();
+    _themeDraftRepository =
+        widget.themeDraftRepository ?? SupabaseThemeDraftRepository();
     _loadProfile();
   }
 
@@ -258,7 +264,8 @@ class _AppShellState extends State<AppShell> {
         _destination == AppDestination.dashboard) {
       return StudentDashboard(
         onNavigate: _navigate,
-        dataSource: widget.dashboardDataSource,
+        dataSource: widget.dashboardDataSource ??
+            SupabaseStudentDashboardDataSource(draftRepository: _themeDraftRepository),
         profile: _profile,
       );
     }
@@ -272,6 +279,7 @@ class _AppShellState extends State<AppShell> {
       curriculumRepository: _curriculumRepository,
       quizRepository: _quizRepository,
       quizManagementRepository: _quizManagementRepository,
+      themeDraftRepository: _themeDraftRepository,
       profile: _profile,
       onProfileUpdated: (profile) => setState(() => _profile = profile),
       onNavigate: _navigate,
@@ -600,20 +608,12 @@ class _BrandMark extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 10),
     child: Row(
       children: [
-        ClipPath(
-          clipper: const _BrandHexagonClipper(),
-          child: Container(
-            width: 34,
-            height: 34,
-            alignment: Alignment.center,
-            color: TeatroColors.rust,
-            child: Text(
-              'T',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(color: Colors.white),
-            ),
-          ),
+        Image.asset(
+          'assets/branding/applogo.png',
+          width: 34,
+          height: 34,
+          fit: BoxFit.contain,
+          semanticLabel: 'Ilocano Teatro Master logo',
         ),
         const SizedBox(width: 10),
         Text.rich(
@@ -631,23 +631,6 @@ class _BrandMark extends StatelessWidget {
       ],
     ),
   );
-}
-
-class _BrandHexagonClipper extends CustomClipper<Path> {
-  const _BrandHexagonClipper();
-
-  @override
-  Path getClip(Size size) => Path()
-    ..moveTo(size.width / 2, 0)
-    ..lineTo(size.width, size.height * .25)
-    ..lineTo(size.width, size.height * .75)
-    ..lineTo(size.width / 2, size.height)
-    ..lineTo(0, size.height * .75)
-    ..lineTo(0, size.height * .25)
-    ..close();
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
 class _UserAvatar extends StatelessWidget {

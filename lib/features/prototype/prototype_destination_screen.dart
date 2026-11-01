@@ -14,9 +14,10 @@ import '../teacher/data/curriculum_repository.dart';
 import '../teacher/teacher_curriculum_screen.dart';
 import '../quiz/data/quiz_repository.dart';
 import '../quiz/data/quiz_management_repository.dart';
+import '../drafts/data/theme_draft_repository.dart';
+import '../drafts/theme_draft_screens.dart';
 import '../quiz/student_quiz_screen.dart';
 import 'demo_content.dart';
-import 'student_creation_screens.dart';
 import 'student_other_screens.dart' show StudentNotificationsScreen;
 import 'student_story_screens.dart';
 import 'teacher_screens.dart';
@@ -33,6 +34,7 @@ class PrototypeDestinationScreen extends StatelessWidget {
     required this.curriculumRepository,
     required this.quizRepository,
     required this.quizManagementRepository,
+    required this.themeDraftRepository,
     required this.onProfileUpdated,
     this.arguments,
     this.profile,
@@ -49,6 +51,7 @@ class PrototypeDestinationScreen extends StatelessWidget {
   final CurriculumRepository curriculumRepository;
   final QuizRepository quizRepository;
   final QuizManagementRepository quizManagementRepository;
+  final ThemeDraftRepository themeDraftRepository;
   final ValueChanged<UserProfile> onProfileUpdated;
   final UserProfile? profile;
   final Object? arguments;
@@ -95,20 +98,18 @@ class PrototypeDestinationScreen extends StatelessWidget {
               onNavigateWithPayload(AppDestination.themeBuilder, title),
         ),
         AppDestination.themeBuilder => ThemeBuilderScreen(
+          repository: themeDraftRepository,
           initialInspiration: arguments is String ? arguments as String : null,
-          initialDraft: arguments is DemoDraft ? arguments as DemoDraft : null,
+          initialDraftId: arguments is String && _looksLikeUuid(arguments) ? arguments : null,
+          onSubmitted: () => onNavigate(AppDestination.drafts),
         ),
-        AppDestination.drafts => DraftsScreen(
-          onNavigate: onNavigate,
-          onOpenSubmission: onNavigateWithPayload,
-          onOpenBuilder: onNavigateWithPayload,
+        AppDestination.drafts => StudentDraftsScreen(
+          repository: themeDraftRepository,
+          onOpenBuilder: (id) => onNavigateWithPayload(AppDestination.themeBuilder, id.isEmpty ? null : id),
         ),
-        AppDestination.submissionReview => StudentSubmissionDetailsScreen(
-          draft: arguments is DemoDraft
-              ? arguments as DemoDraft
-              : demoDrafts.first,
-          onBack: () => onNavigate(AppDestination.drafts),
-          onEdit: onNavigateWithPayload,
+        AppDestination.submissionReview => StudentDraftsScreen(
+          repository: themeDraftRepository,
+          onOpenBuilder: (id) => onNavigateWithPayload(AppDestination.themeBuilder, id),
         ),
         AppDestination.progress => StudentProgressScreen(
           repository: learningRepository,
@@ -169,3 +170,7 @@ class PrototypeDestinationScreen extends StatelessWidget {
     ),
   );
 }
+
+bool _looksLikeUuid(String value) => RegExp(
+  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$',
+).hasMatch(value);
