@@ -10,6 +10,7 @@ import '../profile/user_profile.dart';
 import '../profile/user_profile_repository.dart';
 import '../teacher/data/teacher_student_progress_repository.dart';
 import '../teacher/data/curriculum_repository.dart';
+import '../teacher/data/teacher_review_repository.dart';
 import '../quiz/data/quiz_repository.dart';
 import '../quiz/data/quiz_management_repository.dart';
 import '../drafts/data/theme_draft_repository.dart';
@@ -27,6 +28,7 @@ class AppShell extends StatefulWidget {
     this.quizRepository,
     this.quizManagementRepository,
     this.themeDraftRepository,
+    this.teacherReviewRepository,
     super.key,
   });
 
@@ -40,6 +42,7 @@ class AppShell extends StatefulWidget {
   final QuizRepository? quizRepository;
   final QuizManagementRepository? quizManagementRepository;
   final ThemeDraftRepository? themeDraftRepository;
+  final TeacherReviewRepository? teacherReviewRepository;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -55,6 +58,7 @@ class _AppShellState extends State<AppShell> {
   late QuizRepository _quizRepository;
   late QuizManagementRepository _quizManagementRepository;
   late ThemeDraftRepository _themeDraftRepository;
+  late TeacherReviewRepository _teacherReviewRepository;
   UserProfile? _profile;
 
   @override
@@ -74,6 +78,8 @@ class _AppShellState extends State<AppShell> {
         widget.quizManagementRepository ?? SupabaseQuizManagementRepository();
     _themeDraftRepository =
         widget.themeDraftRepository ?? SupabaseThemeDraftRepository();
+    _teacherReviewRepository =
+        widget.teacherReviewRepository ?? SupabaseTeacherReviewRepository();
     _loadProfile();
   }
 
@@ -264,8 +270,11 @@ class _AppShellState extends State<AppShell> {
         _destination == AppDestination.dashboard) {
       return StudentDashboard(
         onNavigate: _navigate,
-        dataSource: widget.dashboardDataSource ??
-            SupabaseStudentDashboardDataSource(draftRepository: _themeDraftRepository),
+        dataSource:
+            widget.dashboardDataSource ??
+            SupabaseStudentDashboardDataSource(
+              draftRepository: _themeDraftRepository,
+            ),
         profile: _profile,
       );
     }
@@ -280,6 +289,7 @@ class _AppShellState extends State<AppShell> {
       quizRepository: _quizRepository,
       quizManagementRepository: _quizManagementRepository,
       themeDraftRepository: _themeDraftRepository,
+      teacherReviewRepository: _teacherReviewRepository,
       profile: _profile,
       onProfileUpdated: (profile) => setState(() => _profile = profile),
       onNavigate: _navigate,

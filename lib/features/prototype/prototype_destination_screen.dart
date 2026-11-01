@@ -11,6 +11,8 @@ import '../profile/user_profile_screen.dart';
 import '../teacher/data/teacher_student_progress_repository.dart';
 import '../teacher/teacher_student_progress_screen.dart';
 import '../teacher/data/curriculum_repository.dart';
+import '../teacher/data/teacher_review_repository.dart';
+import '../teacher/teacher_review_screens.dart';
 import '../teacher/teacher_curriculum_screen.dart';
 import '../quiz/data/quiz_repository.dart';
 import '../quiz/data/quiz_management_repository.dart';
@@ -20,7 +22,8 @@ import '../quiz/student_quiz_screen.dart';
 import 'demo_content.dart';
 import 'student_other_screens.dart' show StudentNotificationsScreen;
 import 'student_story_screens.dart';
-import 'teacher_screens.dart';
+import 'teacher_screens.dart'
+    show TeacherDashboardScreen, TeacherNotificationsScreen;
 
 class PrototypeDestinationScreen extends StatelessWidget {
   const PrototypeDestinationScreen({
@@ -35,6 +38,7 @@ class PrototypeDestinationScreen extends StatelessWidget {
     required this.quizRepository,
     required this.quizManagementRepository,
     required this.themeDraftRepository,
+    required this.teacherReviewRepository,
     required this.onProfileUpdated,
     this.arguments,
     this.profile,
@@ -52,6 +56,7 @@ class PrototypeDestinationScreen extends StatelessWidget {
   final QuizRepository quizRepository;
   final QuizManagementRepository quizManagementRepository;
   final ThemeDraftRepository themeDraftRepository;
+  final TeacherReviewRepository teacherReviewRepository;
   final ValueChanged<UserProfile> onProfileUpdated;
   final UserProfile? profile;
   final Object? arguments;
@@ -100,16 +105,23 @@ class PrototypeDestinationScreen extends StatelessWidget {
         AppDestination.themeBuilder => ThemeBuilderScreen(
           repository: themeDraftRepository,
           initialInspiration: arguments is String ? arguments as String : null,
-          initialDraftId: arguments is String && _looksLikeUuid(arguments) ? arguments : null,
+          initialDraftId:
+              arguments is String && _looksLikeUuid(arguments as String)
+              ? arguments as String
+              : null,
           onSubmitted: () => onNavigate(AppDestination.drafts),
         ),
         AppDestination.drafts => StudentDraftsScreen(
           repository: themeDraftRepository,
-          onOpenBuilder: (id) => onNavigateWithPayload(AppDestination.themeBuilder, id.isEmpty ? null : id),
+          onOpenBuilder: (id) => onNavigateWithPayload(
+            AppDestination.themeBuilder,
+            id.isEmpty ? null : id,
+          ),
         ),
         AppDestination.submissionReview => StudentDraftsScreen(
           repository: themeDraftRepository,
-          onOpenBuilder: (id) => onNavigateWithPayload(AppDestination.themeBuilder, id),
+          onOpenBuilder: (id) =>
+              onNavigateWithPayload(AppDestination.themeBuilder, id),
         ),
         AppDestination.progress => StudentProgressScreen(
           repository: learningRepository,
@@ -136,14 +148,17 @@ class PrototypeDestinationScreen extends StatelessWidget {
         progressRepository: teacherProgressRepository,
       ),
       AppDestination.reviewQueue => ReviewQueueScreen(
-        onOpenSubmission: (draft) =>
-            onNavigateWithPayload(AppDestination.submissionReview, draft),
+        repository: teacherReviewRepository,
+        onOpenSubmission: (submissionId) => onNavigateWithPayload(
+          AppDestination.submissionReview,
+          submissionId,
+        ),
       ),
       AppDestination.submissionReview => SubmissionReviewScreen(
-        draft: arguments is DemoDraft
-            ? arguments as DemoDraft
-            : demoDrafts.first,
+        repository: teacherReviewRepository,
+        submissionId: arguments is String ? arguments as String : '',
         onBack: () => onNavigate(AppDestination.reviewQueue),
+        onReviewCompleted: () => onNavigate(AppDestination.reviewQueue),
       ),
       AppDestination.studentProgress => TeacherStudentProgressScreen(
         repository: teacherProgressRepository,

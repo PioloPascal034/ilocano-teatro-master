@@ -56,6 +56,13 @@ class ThemeDraft {
   final List<ThemeSubmission> submissions;
 
   bool get editable => status == 'draft' || status == 'revision_requested';
+  bool get complete =>
+      title.trim().isNotEmpty &&
+      centralMessage?.trim().isNotEmpty == true &&
+      dramaticConflict?.trim().isNotEmpty == true &&
+      characters?.trim().isNotEmpty == true &&
+      targetAudience?.trim().isNotEmpty == true &&
+      stageConcept?.trim().isNotEmpty == true;
 
   factory ThemeDraft.fromMap(Map<String, dynamic> row) => ThemeDraft(
     id: row['draft_id'] as String,
@@ -63,7 +70,6 @@ class ThemeDraft {
     status: row['status'] as String? ?? 'draft',
     updatedAt: DateTime.parse(row['updated_at'] as String),
     storyId: row['story_id'] as String?,
-    inspiration: row['inspiration'] as String?,
     centralMessage: row['central_message'] as String?,
     dramaticConflict: row['dramatic_conflict'] as String?,
     characters: row['characters'] as String?,
@@ -89,7 +95,9 @@ class SupabaseThemeDraftRepository implements ThemeDraftRepository {
 
   String get _studentId {
     final id = _client.auth.currentUser?.id;
-    if (id == null) throw StateError('Your session has expired. Sign in again.');
+    if (id == null) {
+      throw StateError('Your session has expired. Sign in again.');
+    }
     return id;
   }
 
@@ -102,10 +110,12 @@ class SupabaseThemeDraftRepository implements ThemeDraftRepository {
         .order('title');
     return rows
         .map((row) => Map<String, dynamic>.from(row))
-        .map((row) => CulturalInspiration(
-              id: row['story_id'] as String,
-              title: row['title'] as String,
-            ))
+        .map(
+          (row) => CulturalInspiration(
+            id: row['story_id'] as String,
+            title: row['title'] as String,
+          ),
+        )
         .toList();
   }
 
@@ -113,7 +123,9 @@ class SupabaseThemeDraftRepository implements ThemeDraftRepository {
   Future<List<ThemeDraft>> listDrafts() async {
     final rows = await _client
         .from('theme_drafts')
-        .select('draft_id, story_id, title, central_message, dramatic_conflict, characters, target_audience, stage_concept, source_acknowledgment, status, updated_at')
+        .select(
+          'draft_id, story_id, title, central_message, dramatic_conflict, characters, target_audience, stage_concept, source_acknowledgment, status, updated_at',
+        )
         .eq('student_id', _studentId)
         .order('updated_at', ascending: false);
     final drafts = rows
@@ -121,7 +133,10 @@ class SupabaseThemeDraftRepository implements ThemeDraftRepository {
         .toList();
     if (drafts.isEmpty) return drafts;
 
-    final storyIds = drafts.map((draft) => draft.storyId).whereType<String>().toSet();
+    final storyIds = drafts
+        .map((draft) => draft.storyId)
+        .whereType<String>()
+        .toSet();
     final stories = storyIds.isEmpty
         ? <Map<String, dynamic>>[]
         : (await _client
@@ -130,12 +145,16 @@ class SupabaseThemeDraftRepository implements ThemeDraftRepository {
                   .inFilter('story_id', storyIds.toList()))
               .map((row) => Map<String, dynamic>.from(row))
               .toList();
-    final titles = {for (final story in stories) story['story_id']: story['title'] as String};
+    final titles = {
+      for (final story in stories) story['story_id']: story['title'] as String,
+    };
 
     final ids = drafts.map((draft) => draft.id).toList();
     final submissionRows = await _client
         .from('submissions')
-        .select('submission_id, draft_id, version_number, submitted_content, status, submitted_at')
+        .select(
+          'submission_id, draft_id, version_number, submitted_content, status, submitted_at',
+        )
         .inFilter('draft_id', ids)
         .order('version_number', ascending: false);
     final submissionMaps = submissionRows
@@ -161,33 +180,39 @@ class SupabaseThemeDraftRepository implements ThemeDraftRepository {
 
     final submissionsByDraft = <String, List<ThemeSubmission>>{};
     for (final row in submissionMaps) {
-      submissionsByDraft.putIfAbsent(row['draft_id'] as String, () => []).add(
-        ThemeSubmission(
-          id: row['submission_id'] as String,
-          version: (row['version_number'] as num).toInt(),
-          status: row['status'] as String,
-          submittedAt: DateTime.parse(row['submitted_at'] as String),
-          content: Map<String, dynamic>.from(row['submitted_content'] as Map),
-          feedback: feedbackBySubmission[row['submission_id'] as String],
-        ),
-      );
+      submissionsByDraft
+          .putIfAbsent(row['draft_id'] as String, () => [])
+          .add(
+            ThemeSubmission(
+              id: row['submission_id'] as String,
+              version: (row['version_number'] as num).toInt(),
+              status: row['status'] as String,
+              submittedAt: DateTime.parse(row['submitted_at'] as String),
+              content: Map<String, dynamic>.from(
+                row['submitted_content'] as Map,
+              ),
+              feedback: feedbackBySubmission[row['submission_id'] as String],
+            ),
+          );
     }
     return drafts
-        .map((draft) => ThemeDraft(
-              id: draft.id,
-              title: draft.title,
-              status: draft.status,
-              updatedAt: draft.updatedAt,
-              storyId: draft.storyId,
-              inspiration: titles[draft.storyId] ?? draft.inspiration,
-              centralMessage: draft.centralMessage,
-              dramaticConflict: draft.dramaticConflict,
-              characters: draft.characters,
-              targetAudience: draft.targetAudience,
-              stageConcept: draft.stageConcept,
-              sourceAcknowledgment: draft.sourceAcknowledgment,
-              submissions: submissionsByDraft[draft.id] ?? const [],
-            ))
+        .map(
+          (draft) => ThemeDraft(
+            id: draft.id,
+            title: draft.title,
+            status: draft.status,
+            updatedAt: draft.updatedAt,
+            storyId: draft.storyId,
+            inspiration: titles[draft.storyId] ?? draft.inspiration,
+            centralMessage: draft.centralMessage,
+            dramaticConflict: draft.dramaticConflict,
+            characters: draft.characters,
+            targetAudience: draft.targetAudience,
+            stageConcept: draft.stageConcept,
+            sourceAcknowledgment: draft.sourceAcknowledgment,
+            submissions: submissionsByDraft[draft.id] ?? const [],
+          ),
+        )
         .toList();
   }
 
@@ -201,7 +226,9 @@ class SupabaseThemeDraftRepository implements ThemeDraftRepository {
   Future<ThemeDraft> saveDraft(ThemeDraft draft) async {
     final studentId = _studentId;
     final values = <String, dynamic>{
-      'title': draft.title.trim().isEmpty ? 'Untitled Theme' : draft.title.trim(),
+      'title': draft.title.trim().isEmpty
+          ? 'Untitled Theme'
+          : draft.title.trim(),
       'story_id': draft.storyId,
       'central_message': draft.centralMessage,
       'dramatic_conflict': draft.dramaticConflict,
@@ -214,7 +241,9 @@ class SupabaseThemeDraftRepository implements ThemeDraftRepository {
       final row = await _client
           .from('theme_drafts')
           .insert({'student_id': studentId, ...values})
-          .select('draft_id, story_id, title, central_message, dramatic_conflict, characters, target_audience, stage_concept, source_acknowledgment, status, updated_at')
+          .select(
+            'draft_id, story_id, title, central_message, dramatic_conflict, characters, target_audience, stage_concept, source_acknowledgment, status, updated_at',
+          )
           .single();
       return ThemeDraft.fromMap(Map<String, dynamic>.from(row));
     }
@@ -224,7 +253,9 @@ class SupabaseThemeDraftRepository implements ThemeDraftRepository {
         .eq('draft_id', draft.id)
         .eq('student_id', studentId)
         .inFilter('status', ['draft', 'revision_requested'])
-        .select('draft_id, story_id, title, central_message, dramatic_conflict, characters, target_audience, stage_concept, source_acknowledgment, status, updated_at')
+        .select(
+          'draft_id, story_id, title, central_message, dramatic_conflict, characters, target_audience, stage_concept, source_acknowledgment, status, updated_at',
+        )
         .maybeSingle();
     if (row == null) {
       throw StateError('This draft is no longer editable or is unavailable.');
@@ -234,7 +265,10 @@ class SupabaseThemeDraftRepository implements ThemeDraftRepository {
 
   @override
   Future<String> submitDraft(String id) async {
-    final result = await _client.rpc('submit_theme', params: {'p_draft_id': id});
+    final result = await _client.rpc(
+      'submit_theme',
+      params: {'p_draft_id': id},
+    );
     if (result is! String) throw const FormatException('Submission failed.');
     return result;
   }

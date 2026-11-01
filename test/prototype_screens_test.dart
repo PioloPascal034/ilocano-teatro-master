@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ilocano_teatro_master/app/app_routes.dart';
 import 'package:ilocano_teatro_master/app/app_theme.dart';
-import 'package:ilocano_teatro_master/features/dashboard/data/student_dashboard_data_source.dart';
-import 'package:ilocano_teatro_master/features/dashboard/models/student_dashboard_data.dart';
 import 'package:ilocano_teatro_master/features/shell/app_shell.dart';
 import 'package:ilocano_teatro_master/features/teacher/data/teacher_student_progress_repository.dart';
 import 'package:ilocano_teatro_master/features/quiz/models/quiz_models.dart';
@@ -11,24 +9,9 @@ import 'support/fake_student_learning_repository.dart';
 import 'support/fake_identity_repositories.dart';
 import 'support/fake_curriculum_repository.dart';
 import 'support/fake_quiz_repository.dart';
-
-class _EmptyDashboardDataSource implements StudentDashboardDataSource {
-  @override
-  Future<StudentDashboardProfile> loadProfile() async =>
-      const StudentDashboardProfile(fullName: 'Maria Alvarado');
-
-  @override
-  Future<StudentLearningOverview> loadLearningOverview() async =>
-      const StudentLearningOverview(
-        modules: [],
-        completedLessonCount: 0,
-        publishedLessonCount: 0,
-        averageQuizScore: null,
-      );
-
-  @override
-  Future<List<StudentRecentDraft>> loadRecentDrafts() async => const [];
-}
+import 'support/fake_theme_draft_repository.dart';
+import 'support/fake_student_dashboard_data_source.dart';
+import 'support/fake_teacher_review_repository.dart';
 
 Future<void> _pumpShell(
   WidgetTester tester,
@@ -36,6 +19,7 @@ Future<void> _pumpShell(
   Size size = const Size(1280, 900),
   FakeUserProfileRepository? profileRepository,
   FakeQuizRepository? quizRepository,
+  FakeTeacherReviewRepository? teacherReviewRepository,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = size;
@@ -44,7 +28,7 @@ Future<void> _pumpShell(
       theme: AppTheme.light,
       home: AppShell(
         role: role,
-        dashboardDataSource: _EmptyDashboardDataSource(),
+        dashboardDataSource: FakeStudentDashboardDataSource(),
         learningRepository: FakeStudentLearningRepository(),
         profileRepository:
             profileRepository ??
@@ -64,6 +48,21 @@ Future<void> _pumpShell(
         ),
         curriculumRepository: FakeCurriculumRepository(),
         quizRepository: quizRepository ?? FakeQuizRepository(),
+        themeDraftRepository: FakeThemeDraftRepository(),
+        teacherReviewRepository:
+            teacherReviewRepository ??
+            FakeTeacherReviewRepository(
+              assignedStudentIds: const {'assigned-learner'},
+              submissions: [
+                teacherSubmissionFixture(
+                  id: 'submission-fixture',
+                  draftId: 'draft-fixture',
+                  studentId: 'assigned-learner',
+                  studentName: 'Ari Learner',
+                  title: 'A Test Theme',
+                ),
+              ],
+            ),
       ),
     ),
   );
@@ -103,19 +102,17 @@ void main() {
     expect(find.text('Shape your story’s heart.'), findsOneWidget);
     expect(find.text('Angalo'), findsOneWidget);
 
+    await tester.enterText(find.byType(TextField).first, 'A test theme');
     await _tap(tester, 'Next');
     expect(find.text('Your central message'), findsOneWidget);
-    await _tap(tester, 'Review & Save');
-    expect(find.text('Your theater concept'), findsOneWidget);
+    await _tap(tester, '6. Review and save');
+    expect(find.text('Review and save'), findsWidgets);
     await _tap(tester, 'Save draft');
-    expect(find.text('Save this draft in demo mode?'), findsOneWidget);
-    await _tap(tester, 'Keep editing');
+    expect(find.text('Draft saved.'), findsOneWidget);
 
     await _tap(tester, 'My Drafts');
     expect(find.text('My drafts & submissions'), findsOneWidget);
-    await _tap(tester, 'View details');
-    expect(find.text('Student concept'), findsOneWidget);
-    expect(find.text('Reviewer feedback'), findsOneWidget);
+    expect(find.text('A test theme'), findsOneWidget);
 
     await _tap(tester, 'My Learning');
     expect(find.text('Your learning path'), findsOneWidget);
@@ -126,7 +123,6 @@ void main() {
       findsOneWidget,
     );
     await _tap(tester, 'Mark as completed');
-    expect(find.text('Lesson completion saved.'), findsOneWidget);
     expect(find.text('Completed'), findsOneWidget);
     await _tap(tester, 'My Learning');
     expect(find.text('100% complete'), findsOneWidget);
@@ -147,13 +143,13 @@ void main() {
       expect(find.text('REVIEWER OVERVIEW'), findsOneWidget);
       await _tap(tester, 'Open review queue');
       expect(find.text('THEME ASSESSMENTS'), findsOneWidget);
-      await _tap(tester, 'When the River Speaks');
+      await _tap(tester, 'A Test Theme');
       expect(find.text('Theme assessment rubric'), findsOneWidget);
       expect(find.byType(DropdownButtonFormField<int>), findsNWidgets(5));
       await tester.ensureVisible(find.text('Request revision'));
       await tester.pumpAndSettle();
       await _tap(tester, 'Request revision');
-      expect(find.text('Score this criterion.'), findsWidgets);
+      expect(find.text('Rate this criterion.'), findsWidgets);
 
       await _tap(tester, 'Review queue');
       await _tap(tester, 'Student Progress');
@@ -276,7 +272,7 @@ void main() {
     await _tap(tester, 'Reviews');
     expect(find.text('THEME ASSESSMENTS'), findsOneWidget);
     expect(tester.takeException(), isNull);
-    await _tap(tester, 'When the River Speaks');
+    await _tap(tester, 'A Test Theme');
     expect(find.text('Theme assessment rubric'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _tap(tester, 'More');

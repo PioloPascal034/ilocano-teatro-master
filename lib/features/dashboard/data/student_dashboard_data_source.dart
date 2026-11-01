@@ -12,9 +12,12 @@ abstract interface class StudentDashboardDataSource {
 }
 
 class SupabaseStudentDashboardDataSource implements StudentDashboardDataSource {
-  SupabaseStudentDashboardDataSource({SupabaseClient? client, ThemeDraftRepository? draftRepository})
-    : _client = client ?? Supabase.instance.client,
-      _draftRepository = draftRepository ?? SupabaseThemeDraftRepository(client: client);
+  SupabaseStudentDashboardDataSource({
+    SupabaseClient? client,
+    ThemeDraftRepository? draftRepository,
+  }) : _client = client ?? Supabase.instance.client,
+       _draftRepository =
+           draftRepository ?? SupabaseThemeDraftRepository(client: client);
 
   final SupabaseClient _client;
   final ThemeDraftRepository _draftRepository;

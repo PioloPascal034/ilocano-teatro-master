@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ilocano_teatro_master/app/app_theme.dart';
 import 'package:ilocano_teatro_master/app/app_routes.dart';
-import 'package:ilocano_teatro_master/features/dashboard/data/student_dashboard_data_source.dart';
-import 'package:ilocano_teatro_master/features/dashboard/models/student_dashboard_data.dart';
 import 'package:ilocano_teatro_master/features/shell/app_shell.dart';
 import 'support/fake_student_learning_repository.dart';
 import 'support/fake_identity_repositories.dart';
 import 'support/fake_curriculum_repository.dart';
 import 'support/fake_quiz_repository.dart';
+import 'support/fake_theme_draft_repository.dart';
+import 'support/fake_student_dashboard_data_source.dart';
+import 'support/fake_teacher_review_repository.dart';
 
 class _RouteObserver extends NavigatorObserver {
   int replacements = 0;
@@ -26,24 +27,6 @@ List<double> _scaleValues(WidgetTester tester) => find
     .map((element) => (element.widget as ScaleTransition).scale.value)
     .toList();
 
-class _FakeDashboardDataSource implements StudentDashboardDataSource {
-  @override
-  Future<StudentDashboardProfile> loadProfile() async =>
-      const StudentDashboardProfile(fullName: 'Maria Alvarado');
-
-  @override
-  Future<StudentLearningOverview> loadLearningOverview() async =>
-      const StudentLearningOverview(
-        modules: [],
-        completedLessonCount: 0,
-        publishedLessonCount: 0,
-        averageQuizScore: null,
-      );
-
-  @override
-  Future<List<StudentRecentDraft>> loadRecentDrafts() async => const [];
-}
-
 void main() {
   Future<void> pumpShell(
     WidgetTester tester, {
@@ -59,7 +42,7 @@ void main() {
         navigatorObservers: [observer],
         home: AppShell(
           role: role,
-          dashboardDataSource: _FakeDashboardDataSource(),
+          dashboardDataSource: FakeStudentDashboardDataSource(),
           learningRepository: FakeStudentLearningRepository(),
           profileRepository: FakeUserProfileRepository(
             role: role == AppRole.student ? 'student' : 'teacher',
@@ -67,6 +50,11 @@ void main() {
           teacherProgressRepository: FakeTeacherStudentProgressRepository(),
           curriculumRepository: FakeCurriculumRepository(),
           quizRepository: FakeQuizRepository(),
+          themeDraftRepository: FakeThemeDraftRepository(),
+          teacherReviewRepository: FakeTeacherReviewRepository(
+            assignedStudentIds: const {},
+            submissions: const [],
+          ),
         ),
       ),
     );
