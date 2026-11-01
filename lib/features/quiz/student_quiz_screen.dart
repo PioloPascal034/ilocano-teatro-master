@@ -6,7 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../app/app_routes.dart';
 import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
-import '../prototype/prototype_widgets.dart';
+import '../../core/widgets/teatro_design_widgets.dart';
 import 'data/quiz_repository.dart';
 import 'models/quiz_models.dart';
 
@@ -164,7 +164,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
   Widget _quizListPage(BuildContext context, _QuizHomeData data) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      DemoPageIntro(
+      TeatroPageIntro(
         eyebrow: 'KNOWLEDGE CHECKS',
         title: 'Test your understanding',
         description: 'Choose a published quiz from your learning modules.',
@@ -198,7 +198,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
           ),
       if (data.attempts.isNotEmpty) ...[
         const SizedBox(height: 17),
-        const DemoSectionTitle(
+        const TeatroSectionTitle(
           eyebrow: 'SAVED RESULTS',
           title: 'Previous attempts',
         ),
@@ -250,11 +250,11 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            DemoBackButton(
+            TeatroBackButton(
               label: 'Knowledge checks',
               onPressed: _backToQuizzes,
             ),
-            const DemoEmptyState(
+            const TeatroEmptyState(
               title: 'Quiz content is not yet available',
               description:
                   'This published quiz has no available questions yet.',
@@ -275,11 +275,11 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DemoBackButton(
+        TeatroBackButton(
           label: 'All knowledge checks',
           onPressed: _backToQuizzes,
         ),
-        DemoPageIntro(
+        TeatroPageIntro(
           eyebrow: 'KNOWLEDGE CHECK · ${quiz.quiz.moduleTitle.toUpperCase()}',
           title: quiz.quiz.title,
           description:
@@ -329,14 +329,14 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                 runSpacing: 8,
                 alignment: WrapAlignment.spaceBetween,
                 children: [
-                  DemoActionButton(
+                  TeatroActionButton(
                     label: 'Previous',
                     icon: Icons.arrow_back,
                     onPressed: _questionIndex == 0
                         ? null
                         : () => setState(() => _questionIndex--),
                   ),
-                  DemoPrimaryButton(
+                  DesignPrimaryButton(
                     label: _questionIndex == quiz.questions.length - 1
                         ? 'Review answers'
                         : 'Next question',
@@ -367,7 +367,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DemoBackButton(
+        TeatroBackButton(
           label: 'Back to questions',
           onPressed: () => setState(() {
             _reviewing = false;
@@ -376,7 +376,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                 : quiz.questions.indexOf(unanswered.first);
           }),
         ),
-        DemoPageIntro(
+        TeatroPageIntro(
           eyebrow: 'FINAL CHECK',
           title: 'Review your answers',
           description: quiz.quiz.title,
@@ -432,7 +432,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
           ),
         if (_submitting) const LinearProgressIndicator(),
         const SizedBox(height: 12),
-        DemoPrimaryButton(
+        DesignPrimaryButton(
           label: _submitting ? 'Submitting…' : 'Submit quiz',
           icon: Icons.check,
           onPressed: unanswered.isNotEmpty || _submitting
@@ -481,12 +481,12 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                DemoActionButton(
+                TeatroActionButton(
                   label: 'Knowledge checks',
                   icon: Icons.quiz_outlined,
                   onPressed: _backToQuizzes,
                 ),
-                DemoPrimaryButton(
+                DesignPrimaryButton(
                   label: 'My progress',
                   icon: Icons.bar_chart,
                   onPressed: () => widget.onNavigate(AppDestination.progress),
@@ -555,7 +555,7 @@ class _QuizCard extends StatelessWidget {
             ],
           ],
         );
-        final button = DemoPrimaryButton(
+        final button = DesignPrimaryButton(
           label: attempts.isEmpty ? 'Start quiz' : 'Try again',
           icon: Icons.arrow_forward,
           onPressed: onStart,

@@ -17,16 +17,18 @@ import '../teacher/teacher_curriculum_screen.dart';
 import '../quiz/data/quiz_repository.dart';
 import '../quiz/data/quiz_management_repository.dart';
 import '../drafts/data/theme_draft_repository.dart';
+import '../notifications/notifications_screen.dart';
+import '../notifications/data/notification_repository.dart';
 import '../drafts/theme_draft_screens.dart';
 import '../quiz/student_quiz_screen.dart';
-import 'demo_content.dart';
-import 'student_other_screens.dart' show StudentNotificationsScreen;
-import 'student_story_screens.dart';
-import 'teacher_screens.dart'
-    show TeacherDashboardScreen, TeacherNotificationsScreen;
+import '../story_vault/data/story_vault_repository.dart';
+import '../story_vault/models/story_models.dart';
+import '../story_vault/story_editor_screens.dart';
+import '../story_vault/story_vault_screens.dart';
+import '../teacher/teacher_dashboard_screen.dart';
 
-class PrototypeDestinationScreen extends StatelessWidget {
-  const PrototypeDestinationScreen({
+class DestinationScreen extends StatelessWidget {
+  const DestinationScreen({
     required this.role,
     required this.destination,
     required this.onNavigate,
@@ -39,7 +41,11 @@ class PrototypeDestinationScreen extends StatelessWidget {
     required this.quizManagementRepository,
     required this.themeDraftRepository,
     required this.teacherReviewRepository,
+    required this.storyVaultRepository,
+    this.notificationRepository,
+    this.onUnreadNotificationCountChanged,
     required this.onProfileUpdated,
+    this.onSignOut,
     this.arguments,
     this.profile,
     super.key,
@@ -57,7 +63,11 @@ class PrototypeDestinationScreen extends StatelessWidget {
   final QuizManagementRepository quizManagementRepository;
   final ThemeDraftRepository themeDraftRepository;
   final TeacherReviewRepository teacherReviewRepository;
+  final StoryVaultRepository storyVaultRepository;
+  final NotificationRepository? notificationRepository;
+  final ValueChanged<int>? onUnreadNotificationCountChanged;
   final ValueChanged<UserProfile> onProfileUpdated;
+  final Future<void> Function()? onSignOut;
   final UserProfile? profile;
   final Object? arguments;
 
@@ -89,26 +99,30 @@ class PrototypeDestinationScreen extends StatelessWidget {
           onNavigate: onNavigate,
           initialQuizId: arguments is String ? arguments as String : null,
         ),
-        AppDestination.storyVault => StoryVaultScreen(
-          onNavigate: onNavigate,
-          onOpenStory: (story) =>
-              onNavigateWithPayload(AppDestination.storyDetail, story),
-        ),
-        AppDestination.storyDetail => StoryDetailsScreen(
-          story: arguments is DemoStory
-              ? arguments as DemoStory
-              : demoStories.first,
-          onBack: () => onNavigate(AppDestination.storyVault),
-          onUseAsInspiration: (title) =>
-              onNavigateWithPayload(AppDestination.themeBuilder, title),
-        ),
+        AppDestination.storyVault => _storyVault(),
+        AppDestination.storyDetail =>
+          arguments is String
+              ? _storyOverview(arguments as String)
+              : _unavailable(context),
+        AppDestination.storyChapter =>
+          arguments is StoryChapterRouteArgs
+              ? _storyChapter(arguments as StoryChapterRouteArgs)
+              : _unavailable(context),
+        AppDestination.storyEditor => _unavailable(context),
+        AppDestination.storyChapterEditor => _unavailable(context),
         AppDestination.themeBuilder => ThemeBuilderScreen(
           repository: themeDraftRepository,
-          initialInspiration: arguments is String ? arguments as String : null,
+          initialInspiration:
+              _themeBuilderStart?.storyTitle ??
+              (arguments is String && !_looksLikeUuid(arguments as String)
+                  ? arguments as String
+                  : null),
+          initialStoryId: _themeBuilderStart?.storyId,
           initialDraftId:
-              arguments is String && _looksLikeUuid(arguments as String)
-              ? arguments as String
-              : null,
+              _themeBuilderStart?.draftId ??
+              (arguments is String && _looksLikeUuid(arguments as String)
+                  ? arguments as String
+                  : null),
           onSubmitted: () => onNavigate(AppDestination.drafts),
         ),
         AppDestination.drafts => StudentDraftsScreen(
@@ -120,6 +134,7 @@ class PrototypeDestinationScreen extends StatelessWidget {
         ),
         AppDestination.submissionReview => StudentDraftsScreen(
           repository: themeDraftRepository,
+          focusSubmissionId: arguments is String ? arguments as String : null,
           onOpenBuilder: (id) =>
               onNavigateWithPayload(AppDestination.themeBuilder, id),
         ),
@@ -129,12 +144,18 @@ class PrototypeDestinationScreen extends StatelessWidget {
           onNavigate: onNavigate,
           onNavigateWithPayload: onNavigateWithPayload,
         ),
-        AppDestination.notifications => const StudentNotificationsScreen(),
+        AppDestination.notifications => NotificationsScreen(
+          role: role,
+          repository: notificationRepository,
+          onUnreadCountChanged: onUnreadNotificationCountChanged,
+          onNavigate: onNavigateWithPayload,
+        ),
         AppDestination.profile => UserProfileScreen(
           role: role,
           repository: profileRepository,
           initialProfile: profile,
           onProfileUpdated: onProfileUpdated,
+          onSignOut: onSignOut,
         ),
         AppDestination.dashboard => const SizedBox.shrink(),
         _ => _unavailable(context),
@@ -167,16 +188,114 @@ class PrototypeDestinationScreen extends StatelessWidget {
         repository: curriculumRepository,
         quizManagementRepository: quizManagementRepository,
       ),
-      AppDestination.notifications => const TeacherNotificationsScreen(),
+      AppDestination.storyVault => _storyVault(),
+      AppDestination.storyDetail =>
+        arguments is String
+            ? _storyOverview(arguments as String)
+            : _unavailable(context),
+      AppDestination.storyChapter =>
+        arguments is StoryChapterRouteArgs
+            ? _storyChapter(arguments as StoryChapterRouteArgs)
+            : _unavailable(context),
+      AppDestination.storyEditor => StoryEditorScreen(
+        storyId: arguments is String ? arguments as String : null,
+        repository: storyVaultRepository,
+        onBack: () => onNavigate(AppDestination.storyVault),
+        onPreview: (storyId) =>
+            onNavigateWithPayload(AppDestination.storyDetail, storyId),
+        onEditChapter: (storyId, chapterId) => onNavigateWithPayload(
+          AppDestination.storyChapterEditor,
+          StoryChapterEditorRouteArgs(storyId: storyId, chapterId: chapterId),
+        ),
+      ),
+      AppDestination.storyChapterEditor =>
+        arguments is StoryChapterEditorRouteArgs
+            ? StoryChapterEditorScreen(
+                storyId: (arguments as StoryChapterEditorRouteArgs).storyId,
+                chapterId: (arguments as StoryChapterEditorRouteArgs).chapterId,
+                repository: storyVaultRepository,
+                onBack: () => onNavigateWithPayload(
+                  AppDestination.storyEditor,
+                  (arguments as StoryChapterEditorRouteArgs).storyId,
+                ),
+              )
+            : _unavailable(context),
+      AppDestination.notifications => NotificationsScreen(
+        role: role,
+        repository: notificationRepository,
+        onUnreadCountChanged: onUnreadNotificationCountChanged,
+        onNavigate: onNavigateWithPayload,
+      ),
       AppDestination.profile => UserProfileScreen(
         role: role,
         repository: profileRepository,
         initialProfile: profile,
         onProfileUpdated: onProfileUpdated,
+        onSignOut: onSignOut,
       ),
       _ => _unavailable(context),
     };
   }
+
+  ThemeBuilderStart? get _themeBuilderStart =>
+      arguments is ThemeBuilderStart ? arguments as ThemeBuilderStart : null;
+
+  Widget _storyVault() => StoryVaultScreen(
+    role: role,
+    repository: storyVaultRepository,
+    onOpenStory: (storyId) =>
+        onNavigateWithPayload(AppDestination.storyDetail, storyId),
+    onReadChapter: (storyId, chapterId, {preview = false}) =>
+        onNavigateWithPayload(
+          AppDestination.storyChapter,
+          StoryChapterRouteArgs(
+            storyId: storyId,
+            chapterId: chapterId,
+            preview: preview,
+          ),
+        ),
+    onUseStory: (selection) => onNavigateWithPayload(
+      AppDestination.themeBuilder,
+      ThemeBuilderStart(
+        storyId: selection.storyId,
+        storyTitle: selection.title,
+      ),
+    ),
+    onEditStory: (storyId) =>
+        onNavigateWithPayload(AppDestination.storyEditor, storyId),
+  );
+
+  Widget _storyOverview(String storyId) => StoryOverviewScreen(
+    storyId: storyId,
+    role: role,
+    repository: storyVaultRepository,
+    onBack: () => onNavigate(AppDestination.storyVault),
+    onReadChapter: (id, chapterId, {preview = false}) => onNavigateWithPayload(
+      AppDestination.storyChapter,
+      StoryChapterRouteArgs(
+        storyId: id,
+        chapterId: chapterId,
+        preview: preview,
+      ),
+    ),
+    onUseStory: (selection) => onNavigateWithPayload(
+      AppDestination.themeBuilder,
+      ThemeBuilderStart(
+        storyId: selection.storyId,
+        storyTitle: selection.title,
+      ),
+    ),
+    onEditStory: (id) => onNavigateWithPayload(AppDestination.storyEditor, id),
+  );
+
+  Widget _storyChapter(StoryChapterRouteArgs route) => StoryChapterReaderScreen(
+    storyId: route.storyId,
+    chapterId: route.chapterId,
+    preview: route.preview,
+    role: role,
+    repository: storyVaultRepository,
+    onNavigate: onNavigateWithPayload,
+  );
 
   Widget _unavailable(BuildContext context) => Center(
     child: Text(

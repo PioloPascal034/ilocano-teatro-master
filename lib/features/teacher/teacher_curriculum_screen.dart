@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
-import '../prototype/prototype_widgets.dart';
+import '../../core/widgets/teatro_design_widgets.dart';
 import 'data/curriculum_repository.dart';
 import 'models/curriculum_models.dart';
 import '../quiz/data/quiz_management_repository.dart';
@@ -87,7 +87,7 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DemoPageIntro(
+          TeatroPageIntro(
             eyebrow: 'APPROVED CURRICULUM',
             title: 'Learning content',
             description: data.canEdit
@@ -97,7 +97,7 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
           if (data.canEdit)
             Align(
               alignment: Alignment.centerRight,
-              child: DemoPrimaryButton(
+              child: DesignPrimaryButton(
                 label: 'Create module',
                 icon: Icons.add,
                 onPressed: _actionBusy ? null : () => _editModule(),
@@ -105,7 +105,7 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
             ),
           const SizedBox(height: 12),
           if (data.modules.isEmpty)
-            DemoEmptyState(
+            TeatroEmptyState(
               title: 'No published modules yet',
               description: data.canEdit
                   ? 'Create a module to begin building the curriculum.'
@@ -148,14 +148,14 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        DemoBackButton(
+        TeatroBackButton(
           label: 'All learning content',
           onPressed: () => setState(() {
             _selectedModuleId = null;
             _previewLessonId = null;
           }),
         ),
-        DemoPageIntro(
+        TeatroPageIntro(
           eyebrow:
               'MODULE ${module.displayOrder.toString().padLeft(2, '0')} \\u00B7 ${module.isPublished ? 'PUBLISHED' : 'UNPUBLISHED'}',
           title: module.title,
@@ -168,17 +168,17 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              DemoActionButton(
+              TeatroActionButton(
                 label: 'Edit module',
                 icon: Icons.edit_outlined,
                 onPressed: _actionBusy ? null : () => _editModule(module),
               ),
-              DemoPrimaryButton(
+              DesignPrimaryButton(
                 label: 'Add lesson',
                 icon: Icons.add,
                 onPressed: _actionBusy ? null : () => _editLesson(module),
               ),
-              DemoActionButton(
+              TeatroActionButton(
                 label: module.isPublished ? 'Unpublish' : 'Publish',
                 icon: module.isPublished
                     ? Icons.visibility_off_outlined
@@ -192,7 +192,7 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
         else
           Align(
             alignment: Alignment.centerLeft,
-            child: DemoStatus(
+            child: TeatroStatus(
               status: module.isPublished ? 'Published' : 'Unpublished',
             ),
           ),
@@ -223,7 +223,7 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
                 ),
               ),
               if (module.lessons.isEmpty)
-                DemoEmptyState(
+                TeatroEmptyState(
                   title: 'No lessons in this module yet',
                   description: data.canEdit
                       ? 'Add a lesson to start building this module.'
@@ -479,7 +479,7 @@ class _ModuleCard extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
-                DemoStatus(
+                TeatroStatus(
                   status: module.isPublished ? 'Published' : 'Unpublished',
                 ),
               ],
@@ -506,18 +506,18 @@ class _ModuleCard extends StatelessWidget {
           spacing: 7,
           runSpacing: 6,
           children: [
-            DemoActionButton(
+            TeatroActionButton(
               label: 'Manage lessons',
               icon: Icons.chevron_right,
               onPressed: onManage,
             ),
             if (canEdit) ...[
-              DemoActionButton(
+              TeatroActionButton(
                 label: 'Edit module',
                 icon: Icons.edit_outlined,
                 onPressed: busy ? null : onEdit,
               ),
-              DemoActionButton(
+              TeatroActionButton(
                 label: module.isPublished ? 'Unpublish' : 'Publish',
                 icon: module.isPublished
                     ? Icons.visibility_off_outlined
@@ -591,12 +591,25 @@ class _LessonRow extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(
-                lesson.title,
-                style: Theme.of(context).textTheme.titleMedium,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    lesson.title,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  if (lesson.needsContentReview)
+                    Text(
+                      'Seed placeholder · replace with source-reviewed text',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: TeatroColors.rust,
+                      ),
+                    ),
+                ],
               ),
             ),
-            DemoStatus(
+            TeatroStatus(
               status: lesson.isPublished ? 'Published' : 'Unpublished',
             ),
           ],
@@ -812,7 +825,7 @@ class _ModuleFormDialogState extends State<_ModuleFormDialog> {
         onPressed: _saving ? null : () => Navigator.pop(context, false),
         child: const Text('Cancel'),
       ),
-      DemoPrimaryButton(
+      DesignPrimaryButton(
         label: _saving ? 'Saving…' : 'Save module',
         icon: Icons.save_outlined,
         onPressed: _saving ? null : _save,
@@ -936,7 +949,7 @@ class _LessonFormDialogState extends State<_LessonFormDialog> {
         onPressed: _saving ? null : () => Navigator.pop(context, false),
         child: const Text('Cancel'),
       ),
-      DemoPrimaryButton(
+      DesignPrimaryButton(
         label: _saving ? 'Saving…' : 'Save lesson',
         icon: Icons.save_outlined,
         onPressed: _saving ? null : _save,

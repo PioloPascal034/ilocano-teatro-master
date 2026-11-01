@@ -24,6 +24,13 @@ class CulturalInspiration {
   final String title;
 }
 
+class ThemeBuilderStart {
+  const ThemeBuilderStart({this.draftId, this.storyId, this.storyTitle});
+  final String? draftId;
+  final String? storyId;
+  final String? storyTitle;
+}
+
 class ThemeDraft {
   const ThemeDraft({
     required this.id,
@@ -203,7 +210,11 @@ class SupabaseThemeDraftRepository implements ThemeDraftRepository {
             status: draft.status,
             updatedAt: draft.updatedAt,
             storyId: draft.storyId,
-            inspiration: titles[draft.storyId] ?? draft.inspiration,
+            inspiration:
+                titles[draft.storyId] ??
+                (draft.storyId == null
+                    ? draft.inspiration
+                    : 'Selected story is no longer published'),
             centralMessage: draft.centralMessage,
             dramaticConflict: draft.dramaticConflict,
             characters: draft.characters,

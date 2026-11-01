@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../app/app_theme.dart';
-import '../../core/widgets/teatro_widgets.dart';
+import 'teatro_widgets.dart';
 
-class DemoPageIntro extends StatelessWidget {
-  const DemoPageIntro({
+class TeatroPageIntro extends StatelessWidget {
+  const TeatroPageIntro({
     required this.eyebrow,
     required this.title,
     this.description,
@@ -53,37 +53,8 @@ class DemoPageIntro extends StatelessWidget {
   );
 }
 
-class DemoDataNotice extends StatelessWidget {
-  const DemoDataNotice({super.key});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.only(bottom: 16),
-    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
-    decoration: BoxDecoration(
-      color: const Color(0xFFF4EEE0),
-      border: Border.all(color: const Color(0xFFE8DDBF)),
-      borderRadius: BorderRadius.circular(7),
-    ),
-    child: Row(
-      children: [
-        const Icon(Icons.science_outlined, size: 16, color: TeatroColors.rust),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            'DEMO DATA · Actions and sample records on this screen are not saved to Supabase.',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: TeatroColors.ink),
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-class DemoPageBody extends StatelessWidget {
-  const DemoPageBody({
+class TeatroPageBody extends StatelessWidget {
+  const TeatroPageBody({
     required this.eyebrow,
     required this.title,
     this.description,
@@ -102,20 +73,19 @@ class DemoPageBody extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      DemoPageIntro(
+      TeatroPageIntro(
         eyebrow: eyebrow,
         title: title,
         description: description,
         trailing: action,
       ),
-      const DemoDataNotice(),
       child,
     ],
   );
 }
 
-class DemoSectionTitle extends StatelessWidget {
-  const DemoSectionTitle({
+class TeatroSectionTitle extends StatelessWidget {
+  const TeatroSectionTitle({
     required this.title,
     this.eyebrow,
     this.actionLabel,
@@ -158,8 +128,8 @@ class DemoSectionTitle extends StatelessWidget {
   );
 }
 
-class DemoFilterTabs extends StatelessWidget {
-  const DemoFilterTabs({
+class TeatroFilterTabs extends StatelessWidget {
+  const TeatroFilterTabs({
     required this.labels,
     required this.selected,
     required this.onSelected,
@@ -206,8 +176,8 @@ class DemoFilterTabs extends StatelessWidget {
   );
 }
 
-class DemoSearchField extends StatelessWidget {
-  const DemoSearchField({
+class TeatroSearchField extends StatelessWidget {
+  const TeatroSearchField({
     required this.controller,
     required this.hint,
     this.onChanged,
@@ -231,8 +201,8 @@ class DemoSearchField extends StatelessWidget {
   );
 }
 
-class DemoEmptyState extends StatelessWidget {
-  const DemoEmptyState({
+class TeatroEmptyState extends StatelessWidget {
+  const TeatroEmptyState({
     required this.title,
     required this.description,
     this.icon = Icons.auto_stories_outlined,
@@ -263,8 +233,8 @@ class DemoEmptyState extends StatelessWidget {
   );
 }
 
-class DemoBackButton extends StatelessWidget {
-  const DemoBackButton({
+class TeatroBackButton extends StatelessWidget {
+  const TeatroBackButton({
     required this.label,
     required this.onPressed,
     super.key,
@@ -285,8 +255,8 @@ class DemoBackButton extends StatelessWidget {
   );
 }
 
-class DemoStatus extends StatelessWidget {
-  const DemoStatus({required this.status, super.key});
+class TeatroStatus extends StatelessWidget {
+  const TeatroStatus({required this.status, super.key});
 
   final String status;
 
@@ -302,18 +272,8 @@ class DemoStatus extends StatelessWidget {
   );
 }
 
-void showDemoMessage(BuildContext context, String action) {
-  ScaffoldMessenger.of(context)
-    ..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        content: Text('Demo only: $action. Nothing was saved to Supabase.'),
-      ),
-    );
-}
-
-class DemoPrimaryButton extends StatelessWidget {
-  const DemoPrimaryButton({
+class DesignPrimaryButton extends StatelessWidget {
+  const DesignPrimaryButton({
     required this.label,
     required this.onPressed,
     this.icon,
@@ -345,8 +305,8 @@ class DemoPrimaryButton extends StatelessWidget {
   }
 }
 
-class DemoActionButton extends StatelessWidget {
-  const DemoActionButton({
+class TeatroActionButton extends StatelessWidget {
+  const TeatroActionButton({
     required this.label,
     required this.onPressed,
     this.icon,

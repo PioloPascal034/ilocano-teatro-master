@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_routes.dart';
 import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
-import '../prototype/prototype_widgets.dart';
+import '../../core/widgets/teatro_design_widgets.dart';
 import 'user_profile.dart';
 import 'user_profile_repository.dart';
 
@@ -12,6 +12,7 @@ class UserProfileScreen extends StatefulWidget {
     required this.role,
     required this.repository,
     required this.onProfileUpdated,
+    this.onSignOut,
     this.initialProfile,
     super.key,
   });
@@ -19,6 +20,7 @@ class UserProfileScreen extends StatefulWidget {
   final AppRole role;
   final UserProfileRepository repository;
   final ValueChanged<UserProfile> onProfileUpdated;
+  final Future<void> Function()? onSignOut;
   final UserProfile? initialProfile;
 
   @override
@@ -37,6 +39,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   bool _saving = false;
   String? _error;
   String? _hydratedId;
+
+  Future<void> _confirmSignOut() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text(
+          'You will need to sign in again to use your account.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || widget.onSignOut == null) return;
+    try {
+      await widget.onSignOut!();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not sign out. Please try again.')),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -133,13 +166,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       _hydrate(profile);
       final student = widget.role == AppRole.student;
       final role = student ? 'Student' : 'Teacher / Reviewer';
-      return DemoPageBody(
+      final compact = MediaQuery.sizeOf(context).width < 600;
+      return TeatroPageBody(
         eyebrow: student ? 'STUDENT PROFILE' : 'TEACHER / REVIEWER PROFILE',
-        title: _display(profile.fullName),
+        title: 'Profile',
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(compact ? 15 : 24),
               decoration: BoxDecoration(
                 color: TeatroColors.dark,
                 borderRadius: BorderRadius.circular(12),
@@ -149,7 +183,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   final identity = Row(
                     children: [
                       CircleAvatar(
-                        radius: 33,
+                        radius: compact ? 27 : 33,
                         backgroundColor: const Color(0xFFDCA77D),
                         child: Text(
                           profile.initials,
@@ -171,8 +205,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             const SizedBox(height: 4),
                             Text(
                               _display(profile.fullName),
-                              style: Theme.of(context).textTheme.headlineMedium
-                                  ?.copyWith(color: Colors.white),
+                              style:
+                                  (compact
+                                          ? Theme.of(
+                                              context,
+                                            ).textTheme.titleLarge
+                                          : Theme.of(
+                                              context,
+                                            ).textTheme.headlineMedium)
+                                      ?.copyWith(color: Colors.white),
                             ),
                             Text(
                               _display(profile.email),
@@ -188,7 +229,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     spacing: 8,
                     children: [
                       if (_editing)
-                        DemoActionButton(
+                        TeatroActionButton(
                           label: 'Cancel',
                           icon: Icons.close,
                           onPressed: _saving
@@ -202,7 +243,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   });
                                 },
                         ),
-                      DemoActionButton(
+                      TeatroActionButton(
                         label: _editing ? 'Save profile' : 'Edit profile',
                         icon: _editing
                             ? Icons.save_outlined
@@ -212,6 +253,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             : _editing
                             ? _save
                             : () => setState(() => _editing = true),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: _saving ? null : _confirmSignOut,
+                        icon: const Icon(Icons.logout, size: 17),
+                        label: const Text('Sign Out'),
                       ),
                     ],
                   );
@@ -233,8 +279,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 },
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: compact ? 10 : 14),
             TeatroCard(
+              padding: EdgeInsets.all(compact ? 15 : 22),
               child: Form(
                 key: _form,
                 child: Column(
@@ -271,6 +318,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                   ],
                 ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TeatroCard(
+              padding: EdgeInsets.all(compact ? 13 : 17),
+              child: Row(
+                children: [
+                  Image.asset(
+                    'assets/branding/applogo.png',
+                    width: 42,
+                    height: 42,
+                    fit: BoxFit.contain,
+                    semanticLabel: 'Ilocano Teatro Master logo',
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Ilocano Teatro Master',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Text(
+                          'Version 1.0.0',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -311,7 +389,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         Expanded(
           child: Text(
             _display(value),
-            style: const TextStyle(fontSize: 12, color: TeatroColors.ink),
+            style: const TextStyle(fontSize: 14, color: TeatroColors.ink),
           ),
         ),
       ],

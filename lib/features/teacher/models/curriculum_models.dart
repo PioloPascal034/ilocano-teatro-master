@@ -7,6 +7,7 @@ class CurriculumLesson {
     required this.content,
     required this.lessonOrder,
     required this.isPublished,
+    this.needsContentReview = false,
   });
 
   final String id;
@@ -16,6 +17,7 @@ class CurriculumLesson {
   final String content;
   final int lessonOrder;
   final bool isPublished;
+  final bool needsContentReview;
 }
 
 class CurriculumModule {

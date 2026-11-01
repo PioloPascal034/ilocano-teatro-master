@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
-import '../prototype/prototype_widgets.dart';
+import '../../core/widgets/teatro_design_widgets.dart';
 import 'data/theme_draft_repository.dart';
 
 class ThemeBuilderScreen extends StatefulWidget {
@@ -11,6 +11,7 @@ class ThemeBuilderScreen extends StatefulWidget {
     required this.repository,
     this.initialDraftId,
     this.initialInspiration,
+    this.initialStoryId,
     this.onSubmitted,
     super.key,
   });
@@ -18,6 +19,7 @@ class ThemeBuilderScreen extends StatefulWidget {
   final ThemeDraftRepository repository;
   final String? initialDraftId;
   final String? initialInspiration;
+  final String? initialStoryId;
   final VoidCallback? onSubmitted;
 
   @override
@@ -53,9 +55,12 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
   void initState() {
     super.initState();
     _draftId = widget.initialDraftId;
+    _storyId = widget.initialDraftId == null ? widget.initialStoryId : null;
     _inspirations = widget.repository.listInspirations();
     if (_draftId != null) _restoreDraft();
-    if (widget.initialInspiration != null) {
+    if (widget.initialStoryId == null &&
+        widget.initialDraftId == null &&
+        widget.initialInspiration != null) {
       _inspirations
           .then((stories) {
             if (!mounted) return;
@@ -185,7 +190,7 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      const DemoPageIntro(
+      const TeatroPageIntro(
         eyebrow: 'THEME-BUILDING GUIDE',
         title: 'Shape your story’s heart.',
         description:
@@ -208,7 +213,7 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
           builder: (context, constraints) {
             final compact = constraints.maxWidth <= 700;
             final steps = compact
-                ? _StepChips(
+                ? _CompactStepNavigator(
                     steps: _steps,
                     current: _step,
                     onSelect: (i) => setState(() => _step = i),
@@ -336,28 +341,43 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
           }
           if (!snapshot.hasData) return const LinearProgressIndicator();
           final stories = snapshot.data!;
-          return DropdownButtonFormField<String?>(
-            initialValue: _storyId,
-            isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Choose a cultural inspiration',
-            ),
-            items: [
-              const DropdownMenuItem<String?>(
-                value: null,
-                child: Text('My own community story'),
-              ),
-              ...stories.map(
-                (story) => DropdownMenuItem<String?>(
-                  value: story.id,
-                  child: Text(story.title),
+          final selectedIsPublished = stories.any(
+            (story) => story.id == _storyId,
+          );
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DropdownButtonFormField<String?>(
+                initialValue: selectedIsPublished ? _storyId : null,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Choose a cultural inspiration',
                 ),
+                items: [
+                  const DropdownMenuItem<String?>(
+                    value: null,
+                    child: Text('My own community story'),
+                  ),
+                  ...stories.map(
+                    (story) => DropdownMenuItem<String?>(
+                      value: story.id,
+                      child: Text(story.title),
+                    ),
+                  ),
+                ],
+                onChanged: (value) => setState(() {
+                  _storyId = value;
+                  if (value == null) _acknowledgment.clear();
+                }),
               ),
+              if (_storyId != null && !selectedIsPublished) ...[
+                const SizedBox(height: 7),
+                const Text(
+                  'This story is no longer published. Your saved draft keeps its original story link.',
+                  style: TextStyle(color: TeatroColors.rust),
+                ),
+              ],
             ],
-            onChanged: (value) => setState(() {
-              _storyId = value;
-              if (value == null) _acknowledgment.clear();
-            }),
           );
         },
       ),
@@ -402,17 +422,21 @@ class StudentDraftsScreen extends StatefulWidget {
   const StudentDraftsScreen({
     required this.repository,
     required this.onOpenBuilder,
+    this.focusSubmissionId,
     super.key,
   });
   final ThemeDraftRepository repository;
   final ValueChanged<String> onOpenBuilder;
+  final String? focusSubmissionId;
 
   @override
   State<StudentDraftsScreen> createState() => _StudentDraftsScreenState();
 }
 
 class _StudentDraftsScreenState extends State<StudentDraftsScreen> {
+  final _focusedDraftKey = GlobalKey();
   late Future<List<ThemeDraft>> _future;
+  bool _focusResolved = false;
   @override
   void initState() {
     super.initState();
@@ -425,25 +449,51 @@ class _StudentDraftsScreenState extends State<StudentDraftsScreen> {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      DemoPageIntro(
-        eyebrow: 'YOUR CONCEPTS',
-        title: 'My drafts & submissions',
-        trailing: Wrap(
-          spacing: 5,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            IconButton(
-              tooltip: 'Refresh drafts',
-              onPressed: _reload,
-              icon: const Icon(Icons.refresh),
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final actions = Wrap(
+            spacing: 5,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              IconButton(
+                tooltip: 'Refresh drafts',
+                onPressed: _reload,
+                icon: const Icon(Icons.refresh),
+              ),
+              FilledButton.icon(
+                onPressed: () => widget.onOpenBuilder(''),
+                icon: const Icon(Icons.add),
+                label: const Text('New Theme'),
+              ),
+            ],
+          );
+          if (constraints.maxWidth > 560) {
+            return TeatroPageIntro(
+              eyebrow: 'YOUR CONCEPTS',
+              title: 'My drafts & submissions',
+              trailing: actions,
+            );
+          }
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const TeatroEyebrow('YOUR CONCEPTS', color: TeatroColors.rust),
+                const SizedBox(height: 4),
+                Text(
+                  'My Drafts',
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 4),
+                const Text('Drafts and submitted themes'),
+                const SizedBox(height: 7),
+                actions,
+              ],
             ),
-            FilledButton.icon(
-              onPressed: () => widget.onOpenBuilder(''),
-              icon: const Icon(Icons.add),
-              label: const Text('New theme'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
       FutureBuilder<List<ThemeDraft>>(
         future: _future,
@@ -488,16 +538,45 @@ class _StudentDraftsScreenState extends State<StudentDraftsScreen> {
               ),
             );
           }
+          final focusedDraft = widget.focusSubmissionId == null
+              ? null
+              : snapshot.data!.where(
+                  (draft) => draft.submissions.any(
+                    (submission) => submission.id == widget.focusSubmissionId,
+                  ),
+                );
+          final focusFound = focusedDraft?.isNotEmpty == true;
+          if (focusFound && !_focusResolved) {
+            _focusResolved = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final target = _focusedDraftKey.currentContext;
+              if (mounted && target != null) {
+                Scrollable.ensureVisible(target, alignment: .15);
+              }
+            });
+          }
           return Column(
             children: [
+              if (widget.focusSubmissionId != null && !focusFound)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: _ErrorNotice(
+                    message:
+                        'That submission is no longer available in your drafts.',
+                  ),
+                ),
               for (final draft in snapshot.data!)
                 Padding(
                   padding: const EdgeInsets.only(bottom: 13),
                   child: _DraftCard(
+                    key: focusFound && focusedDraft!.first.id == draft.id
+                        ? _focusedDraftKey
+                        : null,
                     repository: widget.repository,
                     draft: draft,
                     onEdit: () => widget.onOpenBuilder(draft.id),
                     onRefresh: _reload,
+                    focusSubmissionId: widget.focusSubmissionId,
                   ),
                 ),
             ],
@@ -510,15 +589,18 @@ class _StudentDraftsScreenState extends State<StudentDraftsScreen> {
 
 class _DraftCard extends StatefulWidget {
   const _DraftCard({
+    super.key,
     required this.repository,
     required this.draft,
     required this.onEdit,
     required this.onRefresh,
+    this.focusSubmissionId,
   });
   final ThemeDraftRepository repository;
   final ThemeDraft draft;
   final VoidCallback onEdit;
   final VoidCallback onRefresh;
+  final String? focusSubmissionId;
   @override
   State<_DraftCard> createState() => _DraftCardState();
 }
@@ -577,6 +659,11 @@ class _DraftCardState extends State<_DraftCard> {
           color: Colors.transparent,
           child: ExpansionTile(
             tilePadding: EdgeInsets.zero,
+            initiallyExpanded:
+                widget.focusSubmissionId != null &&
+                widget.draft.submissions.any(
+                  (submission) => submission.id == widget.focusSubmissionId,
+                ),
             title: const Text('View full draft details'),
             children: [
               _ReviewItem(
@@ -655,8 +742,8 @@ class _DraftCardState extends State<_DraftCard> {
   );
 }
 
-class _StepChips extends StatelessWidget {
-  const _StepChips({
+class _CompactStepNavigator extends StatelessWidget {
+  const _CompactStepNavigator({
     required this.steps,
     required this.current,
     required this.onSelect,
@@ -665,19 +752,45 @@ class _StepChips extends StatelessWidget {
   final int current;
   final ValueChanged<int> onSelect;
   @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 7,
-    runSpacing: 7,
-    children: [
-      for (var i = 0; i < steps.length; i++)
-        ActionChip(
-          label: Text('${i + 1}. ${steps[i]}'),
-          onPressed: () => onSelect(i),
-          backgroundColor: current == i
-              ? const Color(0xFFF4E9E1)
-              : TeatroColors.paper,
+  Widget build(BuildContext context) => TeatroCard(
+    padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: current,
+                  isExpanded: true,
+                  items: [
+                    for (var i = 0; i < steps.length; i++)
+                      DropdownMenuItem(
+                        value: i,
+                        child: Text(
+                          '${i + 1}. ${steps[i]}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) onSelect(value);
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Step ${current + 1} of ${steps.length}',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ],
         ),
-    ],
+        const SizedBox(height: 3),
+        LinearProgressIndicator(value: (current + 1) / steps.length),
+      ],
+    ),
   );
 }
 

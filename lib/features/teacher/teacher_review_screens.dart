@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
-import '../prototype/prototype_widgets.dart';
+import '../../core/widgets/teatro_design_widgets.dart';
 import 'data/teacher_review_repository.dart';
 import 'models/teacher_review_models.dart';
 
@@ -64,7 +64,7 @@ class _ReviewQueueScreenState extends State<ReviewQueueScreen> {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      DemoPageIntro(
+      TeatroPageIntro(
         eyebrow: 'THEME ASSESSMENTS',
         title: 'Review queue',
         trailing: IconButton(
@@ -97,7 +97,7 @@ class _ReviewQueueScreenState extends State<ReviewQueueScreen> {
           }
           final submissions = _visible(snapshot.data!);
           if (snapshot.data!.isEmpty) {
-            return const DemoEmptyState(
+            return const TeatroEmptyState(
               title: 'No assigned submissions',
               description:
                   'Submissions from your assigned students will appear here.',
@@ -172,7 +172,7 @@ class _ReviewQueueScreenState extends State<ReviewQueueScreen> {
               ),
               const SizedBox(height: 14),
               if (submissions.isEmpty)
-                const DemoEmptyState(
+                const TeatroEmptyState(
                   title: 'No submissions match',
                   description: 'Adjust your search or status filter.',
                   icon: Icons.search_off_outlined,
@@ -435,7 +435,7 @@ class _SubmissionReviewScreenState extends State<SubmissionReviewScreen> {
             label: const Text('Review queue'),
             style: TextButton.styleFrom(alignment: Alignment.centerLeft),
           ),
-          DemoPageIntro(
+          TeatroPageIntro(
             eyebrow:
                 '${submission.studentName.toUpperCase()} · VERSION ${submission.version}',
             title: submission.title,
@@ -454,7 +454,7 @@ class _SubmissionReviewScreenState extends State<SubmissionReviewScreen> {
           else if (submission.eligibleForReview)
             _assessmentForm(data)
           else
-            const DemoEmptyState(
+            const TeatroEmptyState(
               title: 'This submission is not reviewable',
               description:
                   'Only submissions in an eligible database status can be reviewed.',
@@ -576,7 +576,7 @@ class _SubmissionReviewScreenState extends State<SubmissionReviewScreen> {
 
   Widget _assessmentForm(SubmissionReviewData data) {
     if (data.criteria.isEmpty) {
-      return const DemoEmptyState(
+      return const TeatroEmptyState(
         title: 'Rubric unavailable',
         description: 'The database has no active rubric criteria to assess.',
         icon: Icons.rule_outlined,

@@ -4,8 +4,7 @@ import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
 import '../profile/user_profile.dart';
 import '../teacher/data/teacher_student_progress_repository.dart';
-import 'demo_content.dart';
-import 'prototype_widgets.dart';
+import '../../core/widgets/teatro_design_widgets.dart';
 
 class TeacherDashboardScreen extends StatelessWidget {
   const TeacherDashboardScreen({
@@ -82,7 +81,7 @@ class TeacherDashboardScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                DemoPrimaryButton(
+                DesignPrimaryButton(
                   label: 'Open review queue',
                   icon: Icons.arrow_forward,
                   onPressed: () => onNavigate(AppDestination.reviewQueue),
@@ -139,7 +138,7 @@ class TeacherDashboardScreen extends StatelessWidget {
             },
           ),
           const SizedBox(height: 31),
-          DemoSectionTitle(
+          TeatroSectionTitle(
             title: 'Assigned student progress',
             eyebrow: 'STUDENT ACTIVITY',
             actionLabel: 'View all students',
@@ -147,7 +146,7 @@ class TeacherDashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 11),
           if (snapshot.hasError)
-            const DemoEmptyState(
+            const TeatroEmptyState(
               title: 'Progress unavailable',
               description:
                   'Reopen this dashboard to retry loading assigned student records.',
@@ -156,7 +155,7 @@ class TeacherDashboardScreen extends StatelessWidget {
           else if (snapshot.connectionState == ConnectionState.waiting)
             const Center(child: CircularProgressIndicator())
           else if (students!.isEmpty)
-            const DemoEmptyState(
+            const TeatroEmptyState(
               title: 'No students assigned yet',
               description: 'Assigned students will appear here.',
               icon: Icons.groups_2_outlined,
@@ -237,144 +236,6 @@ class _TeacherMetric extends StatelessWidget {
           ),
         ],
       ),
-    ),
-  );
-}
-
-class TeacherNotificationsScreen extends StatefulWidget {
-  const TeacherNotificationsScreen({super.key});
-
-  @override
-  State<TeacherNotificationsScreen> createState() =>
-      _TeacherNotificationsScreenState();
-}
-
-class _TeacherNotificationsScreenState
-    extends State<TeacherNotificationsScreen> {
-  late List<_TeacherNoticeState> _items;
-  String _filter = 'All Notifications';
-
-  @override
-  void initState() {
-    super.initState();
-    _items = demoTeacherNotifications.map(_TeacherNoticeState.new).toList();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final unread = _items.where((item) => !item.read).length;
-    final labels = [
-      'All Notifications',
-      'Unread',
-      'New Submissions',
-      'Revisions',
-      'Reminders',
-    ];
-    final visible = _items
-        .where(
-          (item) =>
-              _filter == 'All Notifications' ||
-              (_filter == 'Unread'
-                  ? !item.read
-                  : item.value.category == _filter),
-        )
-        .toList();
-    return DemoPageBody(
-      eyebrow: 'REVIEWER UPDATES',
-      title: 'Notifications${unread > 0 ? '  $unread' : ''}',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const DemoDataNotice(),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: () => setState(() {
-                for (final item in _items) {
-                  item.read = true;
-                }
-              }),
-              icon: const Icon(Icons.done_all, size: 16),
-              label: const Text('Mark all as read'),
-            ),
-          ),
-          DemoFilterTabs(
-            labels: labels,
-            selected: _filter,
-            onSelected: (value) => setState(() => _filter = value),
-          ),
-          const SizedBox(height: 13),
-          if (visible.isEmpty)
-            const DemoEmptyState(
-              title: 'No notifications here',
-              description: 'No sample notifications match this filter.',
-              icon: Icons.notifications_none_outlined,
-            )
-          else
-            for (final item in visible)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _TeacherNotificationRow(
-                  item: item,
-                  onMark: () => setState(() => item.read = !item.read),
-                ),
-              ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TeacherNoticeState {
-  _TeacherNoticeState(this.value) : read = value.isRead;
-  final DemoNotification value;
-  bool read;
-}
-
-class _TeacherNotificationRow extends StatelessWidget {
-  const _TeacherNotificationRow({required this.item, required this.onMark});
-  final _TeacherNoticeState item;
-  final VoidCallback onMark;
-
-  @override
-  Widget build(BuildContext context) => TeatroCard(
-    child: Row(
-      children: [
-        Icon(
-          item.read
-              ? Icons.notifications_none
-              : Icons.notifications_active_outlined,
-          color: item.read ? TeatroColors.muted : TeatroColors.success,
-        ),
-        const SizedBox(width: 11),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.value.title,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Text(
-                item.value.detail,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: TeatroColors.muted),
-              ),
-              Text(
-                item.value.dateLabel,
-                style: Theme.of(
-                  context,
-                ).textTheme.labelSmall?.copyWith(color: TeatroColors.muted),
-              ),
-            ],
-          ),
-        ),
-        TextButton(
-          onPressed: onMark,
-          child: Text(item.read ? 'Mark unread' : 'Mark read'),
-        ),
-      ],
     ),
   );
 }

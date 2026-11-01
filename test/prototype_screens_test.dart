@@ -12,6 +12,8 @@ import 'support/fake_quiz_repository.dart';
 import 'support/fake_theme_draft_repository.dart';
 import 'support/fake_student_dashboard_data_source.dart';
 import 'support/fake_teacher_review_repository.dart';
+import 'support/fake_notification_repository.dart';
+import 'support/fake_story_vault_repository.dart';
 
 Future<void> _pumpShell(
   WidgetTester tester,
@@ -63,6 +65,16 @@ Future<void> _pumpShell(
                 ),
               ],
             ),
+        notificationRepository: FakeNotificationRepository(),
+        storyVaultRepository: FakeStoryVaultRepository(
+          stories: [
+            storyFixture(
+              title: 'Test cultural story',
+              summary: 'A verified story fixture for the Story Vault test.',
+              chapters: [chapterFixture()],
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -87,20 +99,15 @@ void main() {
 
     await _tap(tester, 'Story Vault');
     expect(find.text('Ilocano Story Vault'), findsOneWidget);
-    await tester.enterText(find.byType(TextField).first, 'Angalo');
-    await tester.pumpAndSettle();
-    expect(find.text('Angalo'), findsWidgets);
-    expect(find.text('Biag ni Lam-ang'), findsNothing);
-    await _tap(tester, 'Read story');
+    expect(find.text('Test cultural story'), findsOneWidget);
+    await _tap(tester, 'Overview');
     expect(
-      find.text(
-        'A creation legend about the giant Angalo and the shaping of the world.',
-      ),
+      find.text('A verified story fixture for the Story Vault test.'),
       findsOneWidget,
     );
     await _tap(tester, 'Use as theme inspiration');
     expect(find.text('Shape your story’s heart.'), findsOneWidget);
-    expect(find.text('Angalo'), findsOneWidget);
+    expect(find.text('Test cultural story'), findsWidgets);
 
     await tester.enterText(find.byType(TextField).first, 'A test theme');
     await _tap(tester, 'Next');
@@ -184,7 +191,7 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pump();
     await _tap(tester, 'Drafts');
-    expect(find.text('My drafts & submissions'), findsOneWidget);
+    expect(find.text('My Drafts'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await _tap(tester, 'More');
     await _tap(tester, 'My Progress');
@@ -218,6 +225,42 @@ void main() {
     expect(find.text('Welcome back, Ari.'), findsOneWidget);
     expect(find.text('Ari Rivera'), findsOneWidget);
   });
+
+  testWidgets(
+    'profile exposes branded account and confirms sign out on mobile',
+    (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await _pumpShell(tester, AppRole.student, size: const Size(390, 844));
+
+      await _tap(tester, 'More');
+      await _tap(tester, 'Profile');
+      expect(find.text('Ilocano Teatro Master'), findsOneWidget);
+      expect(find.text('Sign Out'), findsOneWidget);
+      await tester.tap(find.text('Sign Out'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sign out?'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Sign out?'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'draft header stays compact and actions remain available on mobile',
+    (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await _pumpShell(tester, AppRole.student, size: const Size(360, 800));
+
+      await _tap(tester, 'Drafts');
+      expect(find.text('My Drafts'), findsOneWidget);
+      expect(find.text('New Theme'), findsOneWidget);
+      expect(find.byTooltip('Refresh drafts'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('My Learning opens the Supabase-backed quiz route', (
     tester,

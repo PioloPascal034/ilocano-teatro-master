@@ -1,3 +1,6 @@
+bool isSeedPlaceholderLesson(String? content) =>
+    (content ?? '').trimLeft().toUpperCase().startsWith('DEMO LESSON ONLY:');
+
 class LearningLessonRoute {
   const LearningLessonRoute({required this.moduleId, required this.lessonId});
 

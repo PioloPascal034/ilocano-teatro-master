@@ -39,13 +39,16 @@ class SupabaseStudentLearningRepository implements StudentLearningRepository {
         .select('module_id, title, description, display_order')
         .eq('is_published', true)
         .order('display_order');
-    final lessonRows = await _client
+    final queriedLessonRows = await _client
         .from('lessons')
         .select(
           'lesson_id, module_id, title, objectives, content, lesson_order',
         )
         .eq('is_published', true)
         .order('lesson_order');
+    final lessonRows = queriedLessonRows
+        .where((row) => !isSeedPlaceholderLesson(row['content'] as String?))
+        .toList();
     final progressRows = await _client
         .from('lesson_progress')
         .select('lesson_id, status, updated_at')
@@ -78,20 +81,26 @@ class SupabaseStudentLearningRepository implements StudentLearningRepository {
           );
     }
 
-    final modules = moduleRows.map((row) {
-      final id = row['module_id'] as String;
-      final lessons = List<LearningLesson>.of(
-        lessonsByModule[id] ?? const <LearningLesson>[],
-      );
-      lessons.sort((a, b) => a.lessonOrder.compareTo(b.lessonOrder));
-      return LearningModule(
-        id: id,
-        title: row['title'] as String? ?? '',
-        description: row['description'] as String? ?? '',
-        displayOrder: (row['display_order'] as num?)?.toInt() ?? 0,
-        lessons: List.unmodifiable(lessons),
-      );
-    }).toList();
+    final modules = moduleRows
+        .where((row) {
+          final id = row['module_id'] as String;
+          return (lessonsByModule[id] ?? const <LearningLesson>[]).isNotEmpty;
+        })
+        .map((row) {
+          final id = row['module_id'] as String;
+          final lessons = List<LearningLesson>.of(
+            lessonsByModule[id] ?? const <LearningLesson>[],
+          );
+          lessons.sort((a, b) => a.lessonOrder.compareTo(b.lessonOrder));
+          return LearningModule(
+            id: id,
+            title: row['title'] as String? ?? '',
+            description: row['description'] as String? ?? '',
+            displayOrder: (row['display_order'] as num?)?.toInt() ?? 0,
+            lessons: List.unmodifiable(lessons),
+          );
+        })
+        .toList();
     return StudentLearningCatalog(modules: List.unmodifiable(modules));
   }
 

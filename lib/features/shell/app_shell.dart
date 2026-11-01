@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_routes.dart';
 import '../../app/app_theme.dart';
@@ -14,7 +15,9 @@ import '../teacher/data/teacher_review_repository.dart';
 import '../quiz/data/quiz_repository.dart';
 import '../quiz/data/quiz_management_repository.dart';
 import '../drafts/data/theme_draft_repository.dart';
-import '../prototype/prototype_destination_screen.dart';
+import 'destination_screen.dart';
+import '../notifications/data/notification_repository.dart';
+import '../story_vault/data/story_vault_repository.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
@@ -29,6 +32,8 @@ class AppShell extends StatefulWidget {
     this.quizManagementRepository,
     this.themeDraftRepository,
     this.teacherReviewRepository,
+    this.notificationRepository,
+    this.storyVaultRepository,
     super.key,
   });
 
@@ -43,6 +48,8 @@ class AppShell extends StatefulWidget {
   final QuizManagementRepository? quizManagementRepository;
   final ThemeDraftRepository? themeDraftRepository;
   final TeacherReviewRepository? teacherReviewRepository;
+  final NotificationRepository? notificationRepository;
+  final StoryVaultRepository? storyVaultRepository;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -59,7 +66,10 @@ class _AppShellState extends State<AppShell> {
   late QuizManagementRepository _quizManagementRepository;
   late ThemeDraftRepository _themeDraftRepository;
   late TeacherReviewRepository _teacherReviewRepository;
+  NotificationRepository? _notificationRepository;
+  late StoryVaultRepository _storyVaultRepository;
   UserProfile? _profile;
+  int _unreadNotificationCount = 0;
 
   @override
   void initState() {
@@ -80,7 +90,35 @@ class _AppShellState extends State<AppShell> {
         widget.themeDraftRepository ?? SupabaseThemeDraftRepository();
     _teacherReviewRepository =
         widget.teacherReviewRepository ?? SupabaseTeacherReviewRepository();
+    _storyVaultRepository =
+        widget.storyVaultRepository ?? SupabaseStoryVaultRepository();
+    _notificationRepository = widget.notificationRepository;
+    if (_notificationRepository == null) {
+      try {
+        _notificationRepository = SupabaseNotificationRepository(
+          Supabase.instance.client,
+        );
+      } catch (_) {
+        // Tests and pre-auth UI may render before Supabase is initialized.
+      }
+    }
+    _loadUnreadNotificationCount();
     _loadProfile();
+  }
+
+  Future<void> _loadUnreadNotificationCount() async {
+    final repository = _notificationRepository;
+    if (repository == null) return;
+    try {
+      final items = await repository.loadNotifications();
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount = items.where((item) => !item.isRead).length;
+        });
+      }
+    } catch (_) {
+      // The notification screen shows a retry action for load failures.
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -90,6 +128,17 @@ class _AppShellState extends State<AppShell> {
     } catch (_) {
       // The profile screen provides a retry state when the record is unavailable.
     }
+  }
+
+  Future<void> _signOut() async {
+    await Supabase.instance.client.auth.signOut();
+    if (!mounted) return;
+    setState(() {
+      _profile = null;
+      _unreadNotificationCount = 0;
+      _destination = AppDestination.dashboard;
+      _destinationArguments = null;
+    });
   }
 
   List<AppDestination> get _primaryDestinations =>
@@ -104,6 +153,7 @@ class _AppShellState extends State<AppShell> {
           AppDestination.dashboard,
           AppDestination.reviewQueue,
           AppDestination.studentProgress,
+          AppDestination.storyVault,
         ];
 
   List<AppDestination> get _allDestinations => widget.role == AppRole.student
@@ -122,6 +172,7 @@ class _AppShellState extends State<AppShell> {
           AppDestination.reviewQueue,
           AppDestination.studentProgress,
           AppDestination.learningContent,
+          AppDestination.storyVault,
           AppDestination.notifications,
           AppDestination.profile,
         ];
@@ -130,7 +181,10 @@ class _AppShellState extends State<AppShell> {
     AppDestination.moduleOverview ||
     AppDestination.lesson ||
     AppDestination.quiz => AppDestination.learning,
-    AppDestination.storyDetail => AppDestination.storyVault,
+    AppDestination.storyDetail ||
+    AppDestination.storyChapter ||
+    AppDestination.storyEditor ||
+    AppDestination.storyChapterEditor => AppDestination.storyVault,
     AppDestination.submissionReview =>
       widget.role == AppRole.teacher
           ? AppDestination.reviewQueue
@@ -147,7 +201,13 @@ class _AppShellState extends State<AppShell> {
             AppDestination.storyDetail,
             AppDestination.submissionReview,
           }
-        : const {AppDestination.submissionReview};
+        : const {
+            AppDestination.submissionReview,
+            AppDestination.storyDetail,
+            AppDestination.storyChapter,
+            AppDestination.storyEditor,
+            AppDestination.storyChapterEditor,
+          };
     if (!_allDestinations.contains(destination) &&
         !detailDestinations.contains(destination)) {
       return;
@@ -218,6 +278,7 @@ class _AppShellState extends State<AppShell> {
                     profile: _profile,
                     selected: _selectedNavigationDestination,
                     onSelect: _navigate,
+                    unreadNotificationCount: _unreadNotificationCount,
                   ),
                 Expanded(
                   child: Column(
@@ -228,6 +289,7 @@ class _AppShellState extends State<AppShell> {
                         destination: _destination,
                         compact: mobile,
                         onSelect: _navigate,
+                        unreadNotificationCount: _unreadNotificationCount,
                       ),
                       Expanded(
                         child: SingleChildScrollView(
@@ -278,7 +340,7 @@ class _AppShellState extends State<AppShell> {
         profile: _profile,
       );
     }
-    return PrototypeDestinationScreen(
+    return DestinationScreen(
       role: widget.role,
       destination: _destination,
       arguments: _destinationArguments,
@@ -290,11 +352,19 @@ class _AppShellState extends State<AppShell> {
       quizManagementRepository: _quizManagementRepository,
       themeDraftRepository: _themeDraftRepository,
       teacherReviewRepository: _teacherReviewRepository,
+      notificationRepository: _notificationRepository,
+      storyVaultRepository: _storyVaultRepository,
+      onUnreadNotificationCountChanged: (count) {
+        if (_unreadNotificationCount != count) {
+          setState(() => _unreadNotificationCount = count);
+        }
+      },
       profile: _profile,
       onProfileUpdated: (profile) => setState(() => _profile = profile),
       onNavigate: _navigate,
       onNavigateWithPayload: (destination, arguments) =>
           _navigate(destination, arguments: arguments),
+      onSignOut: _signOut,
     );
   }
 }
@@ -306,6 +376,7 @@ class _DesktopSidebar extends StatelessWidget {
     required this.profile,
     required this.selected,
     required this.onSelect,
+    required this.unreadNotificationCount,
   });
 
   final double width;
@@ -313,6 +384,7 @@ class _DesktopSidebar extends StatelessWidget {
   final UserProfile? profile;
   final AppDestination selected;
   final ValueChanged<AppDestination> onSelect;
+  final int unreadNotificationCount;
 
   List<AppDestination> get _mainItems => role == AppRole.student
       ? const [
@@ -328,6 +400,7 @@ class _DesktopSidebar extends StatelessWidget {
           AppDestination.reviewQueue,
           AppDestination.studentProgress,
           AppDestination.learningContent,
+          AppDestination.storyVault,
         ];
 
   @override
@@ -359,6 +432,7 @@ class _DesktopSidebar extends StatelessWidget {
           destination: AppDestination.notifications,
           selected: selected == AppDestination.notifications,
           onTap: () => onSelect(AppDestination.notifications),
+          unreadCount: unreadNotificationCount,
         ),
         _NavigationItem(
           destination: AppDestination.profile,
@@ -400,6 +474,7 @@ class _TopBar extends StatelessWidget {
     required this.destination,
     required this.compact,
     required this.onSelect,
+    required this.unreadNotificationCount,
   });
 
   final AppRole role;
@@ -407,6 +482,7 @@ class _TopBar extends StatelessWidget {
   final AppDestination destination;
   final bool compact;
   final ValueChanged<AppDestination> onSelect;
+  final int unreadNotificationCount;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -451,7 +527,13 @@ class _TopBar extends StatelessWidget {
         IconButton(
           tooltip: 'Notifications',
           onPressed: () => onSelect(AppDestination.notifications),
-          icon: const Icon(Icons.notifications_none_outlined),
+          icon: Badge(
+            isLabelVisible: unreadNotificationCount > 0,
+            label: Text(
+              unreadNotificationCount > 99 ? '99+' : '$unreadNotificationCount',
+            ),
+            child: const Icon(Icons.notifications_none_outlined),
+          ),
         ),
         const SizedBox(width: 7),
         _UserAvatar(size: 34, profile: profile),
@@ -559,11 +641,13 @@ class _NavigationItem extends StatelessWidget {
     required this.destination,
     required this.selected,
     required this.onTap,
+    this.unreadCount = 0,
   });
 
   final AppDestination destination;
   final bool selected;
   final VoidCallback onTap;
+  final int unreadCount;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -593,13 +677,20 @@ class _NavigationItem extends StatelessWidget {
                   ),
                 ),
               ),
-              if (destination == AppDestination.notifications)
+              if (destination == AppDestination.notifications &&
+                  unreadCount > 0)
                 Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
                     color: TeatroColors.rust,
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$unreadCount',
+                    style: const TextStyle(color: Colors.white, fontSize: 10),
                   ),
                 ),
             ],
@@ -626,17 +717,21 @@ class _BrandMark extends StatelessWidget {
           semanticLabel: 'Ilocano Teatro Master logo',
         ),
         const SizedBox(width: 10),
-        Text.rich(
-          TextSpan(
-            children: [
-              const TextSpan(text: 'Ilocano\n'),
-              TextSpan(
-                text: 'Teatro',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ],
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              children: [
+                const TextSpan(text: 'Ilocano\n'),
+                TextSpan(
+                  text: 'Teatro Master',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ],
+            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(height: 1.05),
           ),
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.05),
         ),
       ],
     ),
@@ -671,6 +766,9 @@ String _pageTitle(AppDestination destination) => switch (destination) {
   AppDestination.quiz => 'Knowledge check',
   AppDestination.storyVault => 'Story vault',
   AppDestination.storyDetail => 'Story details',
+  AppDestination.storyChapter => 'Chapter reader',
+  AppDestination.storyEditor => 'Story editor',
+  AppDestination.storyChapterEditor => 'Chapter editor',
   AppDestination.themeBuilder => 'Theme builder',
   AppDestination.drafts => 'My drafts',
   AppDestination.progress => 'My progress',

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_routes.dart';
 import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
-import '../prototype/prototype_widgets.dart';
+import '../../core/widgets/teatro_design_widgets.dart';
 import 'data/student_learning_repository.dart';
 import 'models/learning_models.dart';
 
@@ -52,7 +52,7 @@ class _StudentLearningScreenState extends State<StudentLearningScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DemoPageIntro(
+          TeatroPageIntro(
             eyebrow: 'CURRICULUM',
             title: 'Your learning path',
             description:
@@ -60,7 +60,7 @@ class _StudentLearningScreenState extends State<StudentLearningScreen> {
           ),
           Align(
             alignment: Alignment.centerRight,
-            child: DemoActionButton(
+            child: TeatroActionButton(
               label: 'Knowledge checks',
               icon: Icons.quiz_outlined,
               onPressed: () => widget.onNavigate(AppDestination.quiz),
@@ -68,7 +68,7 @@ class _StudentLearningScreenState extends State<StudentLearningScreen> {
           ),
           const SizedBox(height: 11),
           if (catalog.modules.isEmpty)
-            const DemoEmptyState(
+            const TeatroEmptyState(
               title: 'No published modules yet',
               description:
                   'Your teacher’s published learning modules will appear here.',
@@ -80,7 +80,7 @@ class _StudentLearningScreenState extends State<StudentLearningScreen> {
               onContinue: () => _continue(catalog),
             ),
             const SizedBox(height: 24),
-            const DemoSectionTitle(title: 'Explore your modules'),
+            const TeatroSectionTitle(title: 'Explore your modules'),
             const SizedBox(height: 13),
             LayoutBuilder(
               builder: (context, constraints) {
@@ -183,11 +183,11 @@ class _ModuleOverviewScreenState extends State<ModuleOverviewScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DemoBackButton(
+            TeatroBackButton(
               label: 'All learning modules',
               onPressed: () => widget.onNavigate(AppDestination.learning),
             ),
-            const DemoEmptyState(
+            const TeatroEmptyState(
               title: 'Module unavailable',
               description:
                   'This module is not published or is no longer available.',
@@ -203,11 +203,11 @@ class _ModuleOverviewScreenState extends State<ModuleOverviewScreen> {
   Widget _moduleContent(BuildContext context, LearningModule module) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      DemoBackButton(
+      TeatroBackButton(
         label: 'All learning modules',
         onPressed: () => widget.onNavigate(AppDestination.learning),
       ),
-      DemoPageIntro(
+      TeatroPageIntro(
         eyebrow:
             'MODULE ${module.displayOrder.toString().padLeft(2, '0')} · ${module.lessons.length} LESSONS',
         title: module.title,
@@ -256,7 +256,7 @@ class _ModuleOverviewScreenState extends State<ModuleOverviewScreen> {
             final route = _nextLesson(module);
             final button = route == null
                 ? null
-                : DemoPrimaryButton(
+                : DesignPrimaryButton(
                     label: 'Continue lesson',
                     icon: Icons.play_arrow_rounded,
                     onPressed: () => widget.onNavigateWithPayload(
@@ -291,9 +291,9 @@ class _ModuleOverviewScreenState extends State<ModuleOverviewScreen> {
         ),
       ),
       const SizedBox(height: 24),
-      const DemoSectionTitle(title: 'Lessons in this module'),
+      const TeatroSectionTitle(title: 'Lessons in this module'),
       if (module.lessons.isEmpty)
-        const DemoEmptyState(
+        const TeatroEmptyState(
           title: 'No published lessons yet',
           description:
               'Your teacher has not published lessons for this module yet.',
@@ -430,11 +430,11 @@ class _LessonReaderScreenState extends State<LessonReaderScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DemoBackButton(
+            TeatroBackButton(
               label: 'My Learning',
               onPressed: () => widget.onNavigate(AppDestination.learning),
             ),
-            const DemoEmptyState(
+            const TeatroEmptyState(
               title: 'Lesson unavailable',
               description:
                   'This lesson is not published or no longer belongs to this module.',
@@ -697,7 +697,7 @@ class _LessonArticle extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         if (paragraphs.isEmpty)
-          const DemoEmptyState(
+          const TeatroEmptyState(
             title: 'Content not available yet',
             description: 'Your teacher has not added content for this lesson.',
             icon: Icons.menu_book_outlined,
@@ -723,21 +723,21 @@ class _LessonArticle extends StatelessWidget {
         LayoutBuilder(
           builder: (context, constraints) {
             final compact = constraints.maxWidth < 510;
-            final previous = DemoActionButton(
+            final previous = TeatroActionButton(
               label: 'Previous lesson',
               icon: Icons.arrow_back,
               onPressed: onPrevious,
             );
             final complete = lesson.isCompleted
-                ? const DemoStatus(status: 'Completed')
-                : DemoPrimaryButton(
+                ? const TeatroStatus(status: 'Completed')
+                : DesignPrimaryButton(
                     label: savingCompletion ? 'Saving…' : 'Mark as completed',
                     icon: Icons.check,
                     onPressed: savingCompletion ? null : onComplete,
                   );
             final next = onNext == null
                 ? null
-                : DemoActionButton(
+                : TeatroActionButton(
                     label: 'Next lesson',
                     icon: Icons.arrow_forward,
                     onPressed: onNext,
@@ -967,7 +967,7 @@ class _ContinueLearningCard extends StatelessWidget {
               ),
             ],
           );
-          final button = DemoPrimaryButton(
+          final button = DesignPrimaryButton(
             label: route == null ? 'Browse modules' : 'Continue learning',
             icon: Icons.arrow_forward,
             onPressed: onContinue,

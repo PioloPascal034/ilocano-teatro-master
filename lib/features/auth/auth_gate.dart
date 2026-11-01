@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../app/app_routes.dart';
+import '../../app/app_theme.dart';
 import 'auth_screen.dart';
 import '../shell/app_shell.dart';
 
@@ -87,7 +88,28 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(
+        backgroundColor: TeatroColors.cream,
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset(
+                'assets/branding/applogo.png',
+                width: 88,
+                height: 88,
+                fit: BoxFit.contain,
+                semanticLabel: 'Ilocano Teatro Master logo',
+              ),
+              const SizedBox(height: 20),
+              const SizedBox.square(
+                dimension: 24,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+            ],
+          ),
+        ),
+      );
     }
     if (_error != null) {
       return Scaffold(
@@ -99,6 +121,14 @@ class _AuthGateState extends State<AuthGate> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  Image.asset(
+                    'assets/branding/applogo.png',
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.contain,
+                    semanticLabel: 'Ilocano Teatro Master logo',
+                  ),
+                  const SizedBox(height: 14),
                   Text(
                     'We could not load your account profile.',
                     style: Theme.of(context).textTheme.titleLarge,

@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../learning/models/learning_models.dart';
+
 class TeacherStudentProgress {
   const TeacherStudentProgress({
     required this.id,
@@ -74,10 +76,13 @@ class SupabaseTeacherStudentProgressRepository
         .select('id, full_name')
         .inFilter('id', studentIds)
         .eq('role', 'student');
-    final lessons = await _client
+    final queriedLessons = await _client
         .from('lessons')
-        .select('lesson_id')
+        .select('lesson_id, content')
         .eq('is_published', true);
+    final lessons = queriedLessons
+        .where((row) => !isSeedPlaceholderLesson(row['content'] as String?))
+        .toList();
     final progress = await _client
         .from('lesson_progress')
         .select('student_id, lesson_id, status')

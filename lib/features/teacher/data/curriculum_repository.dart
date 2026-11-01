@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../learning/models/learning_models.dart';
 import '../models/curriculum_models.dart';
 
 abstract interface class CurriculumRepository {
@@ -75,18 +76,23 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
   @override
   Future<List<CurriculumModule>> loadModules() async {
     _requireSession();
+    final editor = await isCurriculumEditor();
     // Do not add publication filters here. RLS supplies published rows to
     // ordinary teachers and all rows to authorized curriculum editors.
     final moduleRows = await _client
         .from('learning_modules')
         .select('module_id, title, description, display_order, is_published')
         .order('display_order');
-    final lessonRows = await _client
+    final queriedLessonRows = await _client
         .from('lessons')
         .select(
           'lesson_id, module_id, title, objectives, content, lesson_order, is_published',
         )
         .order('lesson_order');
+    final lessonRows = queriedLessonRows.where((row) {
+      final placeholder = isSeedPlaceholderLesson(row['content'] as String?);
+      return editor || !placeholder;
+    });
 
     final lessonsByModule = <String, List<CurriculumLesson>>{};
     for (final row in lessonRows) {
@@ -98,25 +104,33 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
         content: row['content'] as String? ?? '',
         lessonOrder: (row['lesson_order'] as num?)?.toInt() ?? 0,
         isPublished: row['is_published'] as bool? ?? false,
+        needsContentReview: isSeedPlaceholderLesson(row['content'] as String?),
       );
       lessonsByModule.putIfAbsent(lesson.moduleId, () => []).add(lesson);
     }
 
     return List.unmodifiable(
-      moduleRows.map((row) {
-        final moduleId = row['module_id'] as String;
-        final lessons = List<CurriculumLesson>.of(
-          lessonsByModule[moduleId] ?? const <CurriculumLesson>[],
-        )..sort((a, b) => a.lessonOrder.compareTo(b.lessonOrder));
-        return CurriculumModule(
-          id: moduleId,
-          title: row['title'] as String? ?? '',
-          description: row['description'] as String? ?? '',
-          displayOrder: (row['display_order'] as num?)?.toInt() ?? 0,
-          isPublished: row['is_published'] as bool? ?? false,
-          lessons: List.unmodifiable(lessons),
-        );
-      }),
+      moduleRows
+          .where((row) {
+            if (editor) return true;
+            final moduleId = row['module_id'] as String;
+            return (lessonsByModule[moduleId] ?? const <CurriculumLesson>[])
+                .isNotEmpty;
+          })
+          .map((row) {
+            final moduleId = row['module_id'] as String;
+            final lessons = List<CurriculumLesson>.of(
+              lessonsByModule[moduleId] ?? const <CurriculumLesson>[],
+            )..sort((a, b) => a.lessonOrder.compareTo(b.lessonOrder));
+            return CurriculumModule(
+              id: moduleId,
+              title: row['title'] as String? ?? '',
+              description: row['description'] as String? ?? '',
+              displayOrder: (row['display_order'] as num?)?.toInt() ?? 0,
+              isPublished: row['is_published'] as bool? ?? false,
+              lessons: List.unmodifiable(lessons),
+            );
+          }),
     );
   }
 

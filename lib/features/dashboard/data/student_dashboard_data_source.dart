@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/student_dashboard_data.dart';
+import '../../learning/models/learning_models.dart';
 import '../../drafts/data/theme_draft_repository.dart';
 
 abstract interface class StudentDashboardDataSource {
@@ -51,16 +52,19 @@ class SupabaseStudentDashboardDataSource implements StudentDashboardDataSource {
   @override
   Future<StudentLearningOverview> loadLearningOverview() async {
     final studentId = _studentId;
-    final moduleRows = await _client
+    final queriedModuleRows = await _client
         .from('learning_modules')
         .select('module_id, title, description, display_order')
         .eq('is_published', true)
         .order('display_order');
-    final lessonRows = await _client
+    final queriedLessonRows = await _client
         .from('lessons')
-        .select('lesson_id, module_id, title, lesson_order')
+        .select('lesson_id, module_id, title, lesson_order, content')
         .eq('is_published', true)
         .order('lesson_order');
+    final lessonRows = queriedLessonRows
+        .where((row) => !isSeedPlaceholderLesson(row['content'] as String?))
+        .toList();
     final progressRows = await _client
         .from('lesson_progress')
         .select('lesson_id, status, updated_at')
@@ -79,6 +83,10 @@ class SupabaseStudentDashboardDataSource implements StudentDashboardDataSource {
       lessonsByModule.putIfAbsent(moduleId, () => []).add(lesson);
       lessonById[lesson['lesson_id'] as String] = lesson;
     }
+    final moduleRows = queriedModuleRows.where((row) {
+      final moduleId = row['module_id'] as String;
+      return (lessonsByModule[moduleId] ?? const []).isNotEmpty;
+    }).toList();
 
     final completedLessonIds = <String>{};
     StudentResumeLesson? resumeLesson;

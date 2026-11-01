@@ -17,6 +17,17 @@ LearningLesson _lesson(
 );
 
 void main() {
+  test('identifies setup-script seed lessons for learner filtering', () {
+    expect(
+      isSeedPlaceholderLesson(
+        '  DEMO LESSON ONLY: Replace with verified lesson content.',
+      ),
+      isTrue,
+    );
+    expect(isSeedPlaceholderLesson('A source-reviewed lesson.'), isFalse);
+    expect(isSeedPlaceholderLesson(null), isFalse);
+  });
+
   test('calculates only from published lessons supplied by the repository', () {
     final catalog = StudentLearningCatalog(
       modules: [

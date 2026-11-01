@@ -6,7 +6,7 @@ import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
 import '../quiz/data/quiz_repository.dart';
 import '../quiz/models/quiz_models.dart';
-import '../prototype/prototype_widgets.dart';
+import '../../core/widgets/teatro_design_widgets.dart';
 import 'data/student_learning_repository.dart';
 import 'models/learning_models.dart';
 
@@ -98,7 +98,7 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             },
           ),
           const SizedBox(height: 30),
-          DemoSectionTitle(
+          TeatroSectionTitle(
             eyebrow: 'MODULE PROGRESS',
             title: 'Keep your path in view',
             actionLabel: 'My Learning',
@@ -564,13 +564,13 @@ class _QuizProgressCardState extends State<_QuizProgressCard> {
                     icon: const Icon(Icons.refresh),
                     label: const Text('Retry'),
                   ),
-                DemoActionButton(
+                TeatroActionButton(
                   label: 'Browse quizzes',
                   icon: Icons.quiz_outlined,
                   onPressed: widget.onOpenQuizzes,
                 ),
                 if (widget.onContinue != null)
-                  DemoPrimaryButton(
+                  DesignPrimaryButton(
                     label: 'Continue learning',
                     icon: Icons.arrow_forward,
                     onPressed: widget.onContinue,

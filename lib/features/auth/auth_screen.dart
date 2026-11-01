@@ -237,7 +237,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   TeatroFormField(
                     controller: _nameController,
                     label: 'Full name',
-                    hintText: 'Maria Alvarado',
+                    hintText: 'Enter your full name',
                     textInputAction: TextInputAction.next,
                     validator: (value) => value == null || value.trim().isEmpty
                         ? 'Enter your name.'
@@ -359,17 +359,18 @@ class _Brand extends StatelessWidget {
   const _Brand();
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
     mainAxisSize: MainAxisSize.min,
     children: [
       Image.asset(
         'assets/branding/applogo.png',
-        width: 40,
-        height: 40,
+        width: 58,
+        height: 58,
         fit: BoxFit.contain,
         semanticLabel: 'Ilocano Teatro Master logo',
       ),
-      const SizedBox(width: 11),
+      const SizedBox(height: 8),
       Text.rich(
         TextSpan(
           children: [

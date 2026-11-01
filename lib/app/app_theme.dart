@@ -54,9 +54,9 @@ abstract final class AppTheme {
         titleMedium: body.copyWith(fontSize: 14, fontWeight: FontWeight.w700),
         bodyLarge: body.copyWith(fontSize: 15, height: 1.6),
         bodyMedium: body.copyWith(fontSize: 13, height: 1.55),
-        bodySmall: body.copyWith(fontSize: 11, height: 1.5),
+        bodySmall: body.copyWith(fontSize: 12, height: 1.5),
         labelLarge: body.copyWith(fontSize: 13, fontWeight: FontWeight.w800),
-        labelMedium: body.copyWith(fontSize: 10, fontWeight: FontWeight.w700),
+        labelMedium: body.copyWith(fontSize: 11, fontWeight: FontWeight.w700),
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: TeatroColors.paper,
@@ -71,8 +71,8 @@ abstract final class AppTheme {
           horizontal: 15,
           vertical: 14,
         ),
-        hintStyle: body.copyWith(color: TeatroColors.muted, fontSize: 13),
-        labelStyle: body.copyWith(color: TeatroColors.muted, fontSize: 12),
+        hintStyle: body.copyWith(color: TeatroColors.muted, fontSize: 14),
+        labelStyle: body.copyWith(color: TeatroColors.muted, fontSize: 13),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(7),
           borderSide: const BorderSide(color: TeatroColors.line),

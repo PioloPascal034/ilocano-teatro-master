@@ -95,6 +95,29 @@ void main() {
     },
   );
 
+  testWidgets('mobile theme builder uses a compact six-step navigator', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ThemeBuilderScreen(repository: FakeThemeDraftRepository()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Step 1 of 6'), findsOneWidget);
+    expect(find.byType(DropdownButton<int>), findsOneWidget);
+    expect(find.text('1. Cultural inspiration'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'draft list shows a genuine empty state for an empty fake repository',
     (tester) async {

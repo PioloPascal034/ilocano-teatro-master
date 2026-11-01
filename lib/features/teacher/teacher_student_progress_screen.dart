@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
 import 'data/teacher_student_progress_repository.dart';
-import '../prototype/prototype_widgets.dart';
+import '../../core/widgets/teatro_design_widgets.dart';
 
 class TeacherStudentProgressScreen extends StatefulWidget {
   const TeacherStudentProgressScreen({required this.repository, super.key});
@@ -59,7 +59,7 @@ class _TeacherStudentProgressScreenState
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const DemoPageBody(
+          const TeatroPageBody(
             eyebrow: 'LEARNING ACTIVITY',
             title: 'Student progress',
             description: 'Progress for students assigned to your account.',
@@ -112,7 +112,9 @@ class _TeacherStudentProgressScreenState
                                   ),
                                   DataCell(_CompletionCell(student: student)),
                                   DataCell(Text(_score(student.quizAverage))),
-                                  DataCell(DemoStatus(status: student.status)),
+                                  DataCell(
+                                    TeatroStatus(status: student.status),
+                                  ),
                                 ],
                               ),
                           ],
@@ -181,7 +183,7 @@ class _StudentProgressTile extends StatelessWidget {
         LinearProgressIndicator(value: student.completion),
       ],
     ),
-    trailing: DemoStatus(status: student.status),
+    trailing: TeatroStatus(status: student.status),
   );
 }
 
