@@ -37,8 +37,11 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
     _catalogFuture = widget.repository.loadCatalog();
   }
 
-  void _retry() =>
-      setState(() => _catalogFuture = widget.repository.loadCatalog());
+  void _retry() {
+    setState(() {
+      _catalogFuture = widget.repository.loadCatalog();
+    });
+  }
 
   @override
   Widget build(BuildContext context) => FutureBuilder<StudentLearningCatalog>(
@@ -106,10 +109,13 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
           ),
           const SizedBox(height: 11),
           if (catalog.modules.isEmpty)
-            const _ProgressEmpty(
-              title: 'No published modules yet',
-              message:
-                  'Progress will appear when your teacher publishes lessons.',
+            _ProgressEmpty(
+              title: catalog.placeholderLessonCount > 0
+                  ? 'Published modules need lesson review'
+                  : 'No published modules yet',
+              message: catalog.placeholderLessonCount > 0
+                  ? '${catalog.placeholderLessonCount} published seed lesson${catalog.placeholderLessonCount == 1 ? '' : 's'} are hidden pending editorial review.'
+                  : 'Progress will appear when your teacher publishes lessons.',
             )
           else
             for (final module in catalog.modules)
@@ -184,7 +190,9 @@ class _ProgressHero extends StatelessWidget {
               const SizedBox(height: 7),
               Text(
                 hasLessons
-                    ? 'You have completed ${catalog.completedLessons} of ${catalog.totalLessons} published lessons.'
+                    ? 'You have completed ${catalog.completedLessons} of ${catalog.totalLessons} available lessons.'
+                    : catalog.placeholderLessonCount > 0
+                    ? '${catalog.placeholderLessonCount} published seed lesson${catalog.placeholderLessonCount == 1 ? '' : 's'} are hidden pending editorial review.'
                     : 'Your progress will appear here when lessons are published.',
                 style: Theme.of(
                   context,
@@ -368,7 +376,9 @@ class _ModuleProgressRow extends StatelessWidget {
           children: [
             if (module.lessons.isEmpty)
               Text(
-                'No published lessons',
+                module.placeholderLessonCount > 0
+                    ? '${module.placeholderLessonCount} seed lesson${module.placeholderLessonCount == 1 ? '' : 's'} pending review'
+                    : 'No lessons available',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: TeatroColors.muted),

@@ -20,6 +20,7 @@ Future<void> _pumpShell(
   AppRole role, {
   Size size = const Size(1280, 900),
   FakeUserProfileRepository? profileRepository,
+  FakeStudentLearningRepository? learningRepository,
   FakeQuizRepository? quizRepository,
   FakeTeacherReviewRepository? teacherReviewRepository,
 }) async {
@@ -31,7 +32,8 @@ Future<void> _pumpShell(
       home: AppShell(
         role: role,
         dashboardDataSource: FakeStudentDashboardDataSource(),
-        learningRepository: FakeStudentLearningRepository(),
+        learningRepository:
+            learningRepository ?? FakeStudentLearningRepository(),
         profileRepository:
             profileRepository ??
             FakeUserProfileRepository(
@@ -95,7 +97,13 @@ void main() {
   ) async {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await _pumpShell(tester, AppRole.student);
+    await _pumpShell(
+      tester,
+      AppRole.student,
+      learningRepository: FakeStudentLearningRepository(
+        includeVerifiedTestLesson: true,
+      ),
+    );
 
     await _tap(tester, 'Story Vault');
     expect(find.text('Ilocano Story Vault'), findsOneWidget);
@@ -124,18 +132,19 @@ void main() {
     await _tap(tester, 'My Learning');
     expect(find.text('Your learning path'), findsOneWidget);
     await _tap(tester, 'Continue learning');
-    expect(find.text('What Is Theater?'), findsWidgets);
+    expect(find.text('Verified sample lesson'), findsWidgets);
     expect(
-      find.textContaining('DEMO LESSON ONLY: Replace with teacher-approved'),
+      find.text('Test-only source-reviewed lesson fixture.'),
       findsOneWidget,
     );
+    expect(find.textContaining('DEMO LESSON ONLY'), findsNothing);
     await _tap(tester, 'Mark as completed');
     expect(find.text('Completed'), findsOneWidget);
     await _tap(tester, 'My Learning');
     expect(find.text('100% complete'), findsOneWidget);
     await _tap(tester, 'My Progress');
     expect(
-      find.textContaining('You have completed 1 of 5 published lessons.'),
+      find.textContaining('You have completed 1 of 1 available lessons.'),
       findsOneWidget,
     );
   });
@@ -206,6 +215,32 @@ void main() {
     expect(find.text('PERSONAL INFORMATION'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'published modules remain visible while demo lessons are withheld',
+    (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await _pumpShell(tester, AppRole.student);
+
+      await _tap(tester, 'My Learning');
+      expect(
+        find.text('5 published modules · 0 approved lessons available.'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('5 published seed lessons are hidden'),
+        findsOneWidget,
+      );
+      expect(find.text('Introduction to Theater'), findsOneWidget);
+      expect(find.textContaining('DEMO LESSON ONLY'), findsNothing);
+
+      await _tap(tester, 'Start learning');
+      expect(find.text('Lessons pending editorial review'), findsOneWidget);
+      expect(find.textContaining('published seed lesson'), findsWidgets);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('profile edits refresh shared account identity', (tester) async {
     addTearDown(tester.view.resetPhysicalSize);

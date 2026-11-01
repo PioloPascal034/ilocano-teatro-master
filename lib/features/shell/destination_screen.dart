@@ -111,6 +111,9 @@ class DestinationScreen extends StatelessWidget {
         AppDestination.storyEditor => _unavailable(context),
         AppDestination.storyChapterEditor => _unavailable(context),
         AppDestination.themeBuilder => ThemeBuilderScreen(
+          key: ValueKey<String>(
+            'theme-builder:${_themeBuilderStart?.draftId ?? (arguments is String && _looksLikeUuid(arguments as String) ? arguments as String : 'new')}',
+          ),
           repository: themeDraftRepository,
           initialInspiration:
               _themeBuilderStart?.storyTitle ??

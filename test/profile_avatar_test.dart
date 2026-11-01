@@ -28,6 +28,7 @@ Future<void> _pumpProfile(
   WidgetTester tester,
   FakeUserProfileRepository repository, {
   required UserProfile initialProfile,
+  AppRole role = AppRole.student,
   ProfileAvatarPicker? picker,
   ValueChanged<UserProfile>? onUpdated,
 }) async {
@@ -39,7 +40,7 @@ Future<void> _pumpProfile(
       home: Scaffold(
         body: SingleChildScrollView(
           child: UserProfileScreen(
-            role: AppRole.student,
+            role: role,
             repository: repository,
             initialProfile: initialProfile,
             onProfileUpdated: onUpdated ?? (_) {},
@@ -232,6 +233,81 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('failed authenticated download restores prior saved photo', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final bytes = await _logoBytes();
+    final repository = FakeUserProfileRepository();
+    const oldPath = 'test-user/previous.png';
+    repository.avatarFiles[oldPath] = bytes;
+    repository.profile = repository.profile.withAvatar(
+      storagePath: oldPath,
+      bytes: bytes,
+    );
+    repository.failAvatarDownloadPaths.add('test-user/avatar_1.png');
+    await _pumpProfile(
+      tester,
+      repository,
+      initialProfile: await repository.loadCurrentProfile(),
+      picker: () async => bytes,
+    );
+
+    await tester.tap(find.text('Change Photo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Upload Photo'));
+    await tester.pumpAndSettle();
+
+    expect(repository.profile.avatarStoragePath, oldPath);
+    expect(repository.avatarFiles.keys, [oldPath]);
+    expect(repository.avatarDeleteCount, 1);
+    expect(
+      find.textContaining('new photo could not be downloaded'),
+      findsOneWidget,
+    );
+    expect(find.text('Retry Upload'), findsOneWidget);
+    expect(
+      tester
+          .widgetList<ProfileAvatar>(find.byType(ProfileAvatar))
+          .where((avatar) => avatar.profile?.id == repository.profile.id)
+          .every((avatar) => avatar.profile?.avatarStoragePath == oldPath),
+      isTrue,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'avatar download failure offers retry and recovers to the photo',
+    (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final bytes = await _logoBytes();
+      final repository = FakeUserProfileRepository(failAvatarDownload: true);
+      const path = 'test-user/saved.png';
+      repository.avatarFiles[path] = bytes;
+      repository.profile = repository.profile.withAvatar(storagePath: path);
+      await _pumpProfile(
+        tester,
+        repository,
+        initialProfile: await repository.loadCurrentProfile(),
+      );
+
+      expect(find.text('Your saved photo is unavailable.'), findsOneWidget);
+      repository.failAvatarDownload = false;
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+      expect(find.text('Your saved photo is unavailable.'), findsNothing);
+      expect(
+        tester
+            .widgetList<ProfileAvatar>(find.byType(ProfileAvatar))
+            .any((avatar) => avatar.profile?.avatarBytes != null),
+        isTrue,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('top bar and profile card use the same saved avatar', (
     tester,
   ) async {
@@ -253,7 +329,7 @@ void main() {
         theme: AppTheme.light,
         home: AppShell(
           role: AppRole.student,
-          initialDestination: AppDestination.profile,
+          initialDestination: AppDestination.storyVault,
           dashboardDataSource: FakeStudentDashboardDataSource(),
           learningRepository: FakeStudentLearningRepository(),
           profileRepository: repository,
@@ -273,6 +349,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byTooltip('Open Profile'), findsOneWidget);
+    final headerAvatar = tester.widget<ProfileAvatar>(
+      find.byType(ProfileAvatar).first,
+    );
+    expect(headerAvatar.profile?.avatarStoragePath, path);
+    await tester.tap(find.byTooltip('Open Profile'));
+    await tester.pumpAndSettle();
+    expect(find.text('PERSONAL INFORMATION'), findsOneWidget);
+
     final avatars = tester.widgetList<ProfileAvatar>(
       find.byType(ProfileAvatar),
     );
@@ -284,6 +369,64 @@ void main() {
     expect(
       avatars.every((avatar) => avatar.profile?.avatarStoragePath == path),
       isTrue,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('profile and header avatars refresh together after replacement', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    final bytes = await _logoBytes();
+    final repository = FakeUserProfileRepository();
+    UserProfile? headerProfile = repository.profile;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: StatefulBuilder(
+          builder: (context, setState) => Scaffold(
+            body: Column(
+              children: [
+                ProfileAvatar(profile: headerProfile, size: 44),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: UserProfileScreen(
+                      role: AppRole.student,
+                      repository: repository,
+                      initialProfile: repository.profile,
+                      avatarPicker: () async => bytes,
+                      onProfileUpdated: (profile) =>
+                          setState(() => headerProfile = profile),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Change Photo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Upload Photo'));
+    await tester.pumpAndSettle();
+
+    final avatarProfiles = tester
+        .widgetList<ProfileAvatar>(find.byType(ProfileAvatar))
+        .map((avatar) => avatar.profile)
+        .toList();
+    expect(avatarProfiles, hasLength(2));
+    expect(
+      avatarProfiles.every((profile) => profile?.avatarBytes != null),
+      isTrue,
+    );
+    expect(
+      avatarProfiles.map((profile) => profile?.avatarStoragePath).toSet(),
+      {repository.profile.avatarStoragePath},
     );
     expect(tester.takeException(), isNull);
   });

@@ -61,6 +61,15 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     }
   }
 
+  Future<void> _requireEditor() async {
+    _requireSession();
+    if (!await isCurriculumEditor()) {
+      throw StateError(
+        'Curriculum Editor permission is required to change lessons.',
+      );
+    }
+  }
+
   @override
   Future<bool> isCurriculumEditor() async {
     _requireSession();
@@ -93,6 +102,16 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
       final placeholder = isSeedPlaceholderLesson(row['content'] as String?);
       return editor || !placeholder;
     });
+    final publishedPlaceholderCounts = <String, int>{};
+    final unpublishedPlaceholderCounts = <String, int>{};
+    for (final row in queriedLessonRows) {
+      if (!isSeedPlaceholderLesson(row['content'] as String?)) continue;
+      final moduleId = row['module_id'] as String;
+      final counts = row['is_published'] == true
+          ? publishedPlaceholderCounts
+          : unpublishedPlaceholderCounts;
+      counts.update(moduleId, (count) => count + 1, ifAbsent: () => 1);
+    }
 
     final lessonsByModule = <String, List<CurriculumLesson>>{};
     for (final row in lessonRows) {
@@ -110,27 +129,27 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     }
 
     return List.unmodifiable(
-      moduleRows
-          .where((row) {
-            if (editor) return true;
-            final moduleId = row['module_id'] as String;
-            return (lessonsByModule[moduleId] ?? const <CurriculumLesson>[])
-                .isNotEmpty;
-          })
-          .map((row) {
-            final moduleId = row['module_id'] as String;
-            final lessons = List<CurriculumLesson>.of(
-              lessonsByModule[moduleId] ?? const <CurriculumLesson>[],
-            )..sort((a, b) => a.lessonOrder.compareTo(b.lessonOrder));
-            return CurriculumModule(
-              id: moduleId,
-              title: row['title'] as String? ?? '',
-              description: row['description'] as String? ?? '',
-              displayOrder: (row['display_order'] as num?)?.toInt() ?? 0,
-              isPublished: row['is_published'] as bool? ?? false,
-              lessons: List.unmodifiable(lessons),
-            );
-          }),
+      moduleRows.map((row) {
+        final moduleId = row['module_id'] as String;
+        final lessons = List<CurriculumLesson>.of(
+          lessonsByModule[moduleId] ?? const <CurriculumLesson>[],
+        )..sort((a, b) => a.lessonOrder.compareTo(b.lessonOrder));
+        return CurriculumModule(
+          id: moduleId,
+          title: row['title'] as String? ?? '',
+          description: row['description'] as String? ?? '',
+          displayOrder: (row['display_order'] as num?)?.toInt() ?? 0,
+          isPublished: row['is_published'] as bool? ?? false,
+          lessons: List.unmodifiable(lessons),
+          placeholderLessonCount:
+              (publishedPlaceholderCounts[moduleId] ?? 0) +
+              (unpublishedPlaceholderCounts[moduleId] ?? 0),
+          publishedPlaceholderLessonCount:
+              publishedPlaceholderCounts[moduleId] ?? 0,
+          unpublishedPlaceholderLessonCount:
+              unpublishedPlaceholderCounts[moduleId] ?? 0,
+        );
+      }),
     );
   }
 
@@ -139,7 +158,7 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     required String title,
     required String description,
   }) async {
-    _requireSession();
+    await _requireEditor();
     final rows = await _client
         .from('learning_modules')
         .select('display_order')
@@ -174,11 +193,13 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     required String title,
     required String description,
   }) async {
-    _requireSession();
-    await _client
+    await _requireEditor();
+    final rows = await _client
         .from('learning_modules')
         .update({'title': title.trim(), 'description': description.trim()})
-        .eq('module_id', moduleId);
+        .eq('module_id', moduleId)
+        .select('module_id');
+    if (rows.isEmpty) throw StateError('The module was not updated.');
   }
 
   @override
@@ -186,11 +207,15 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     required String moduleId,
     required bool isPublished,
   }) async {
-    _requireSession();
-    await _client
+    await _requireEditor();
+    final rows = await _client
         .from('learning_modules')
         .update({'is_published': isPublished})
-        .eq('module_id', moduleId);
+        .eq('module_id', moduleId)
+        .select('module_id');
+    if (rows.isEmpty) {
+      throw StateError('The module publication state was not updated.');
+    }
   }
 
   @override
@@ -200,7 +225,7 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     required String? objectives,
     required String content,
   }) async {
-    _requireSession();
+    await _requireEditor();
     final rows = await _client
         .from('lessons')
         .select('lesson_order')
@@ -234,15 +259,17 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     required String? objectives,
     required String content,
   }) async {
-    _requireSession();
-    await _client
+    await _requireEditor();
+    final rows = await _client
         .from('lessons')
         .update({
           'title': title.trim(),
           'objectives': _emptyToNull(objectives),
           'content': content.trim(),
         })
-        .eq('lesson_id', lessonId);
+        .eq('lesson_id', lessonId)
+        .select('lesson_id');
+    if (rows.isEmpty) throw StateError('The lesson was not updated.');
   }
 
   @override
@@ -250,11 +277,28 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     required String lessonId,
     required bool isPublished,
   }) async {
-    _requireSession();
-    await _client
+    await _requireEditor();
+    if (isPublished) {
+      final lesson = await _client
+          .from('lessons')
+          .select('content')
+          .eq('lesson_id', lessonId)
+          .maybeSingle();
+      if (lesson == null) throw StateError('The lesson was not found.');
+      if (isSeedPlaceholderLesson(lesson['content'] as String?)) {
+        throw StateError(
+          'This is still seeded demo content. Replace it with source-reviewed lesson text or leave it unpublished before publishing.',
+        );
+      }
+    }
+    final rows = await _client
         .from('lessons')
         .update({'is_published': isPublished})
-        .eq('lesson_id', lessonId);
+        .eq('lesson_id', lessonId)
+        .select('lesson_id');
+    if (rows.isEmpty) {
+      throw StateError('The lesson publication state was not updated.');
+    }
   }
 
   @override
@@ -262,7 +306,7 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     required String moduleId,
     required List<String> lessonIds,
   }) async {
-    _requireSession();
+    await _requireEditor();
     await _client.rpc(
       'reorder_module_lessons',
       params: {'p_module_id': moduleId, 'p_lesson_ids': lessonIds},

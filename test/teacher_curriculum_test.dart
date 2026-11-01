@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ilocano_teatro_master/app/app_theme.dart';
 import 'package:ilocano_teatro_master/features/teacher/teacher_curriculum_screen.dart';
+import 'package:ilocano_teatro_master/features/teacher/models/curriculum_models.dart';
 import 'support/fake_curriculum_repository.dart';
 
 Future<void> _pump(
@@ -134,6 +135,85 @@ void main() {
     expect(lesson.isPublished, isFalse);
   });
 
+  testWidgets(
+    'lesson save reports repository errors without closing the form',
+    (tester) async {
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final repository = FakeCurriculumRepository(
+        mutationError: StateError('permission denied by repository fixture'),
+      );
+      await _pump(tester, repository);
+      await _tap(tester, 'Manage lessons');
+      await _tap(tester, 'Add lesson');
+      await tester.enterText(find.byType(TextFormField).at(0), 'A new lesson');
+      await tester.enterText(
+        find.byType(TextFormField).at(2),
+        'Source-backed text',
+      );
+      await _tap(tester, 'Save lesson');
+      expect(
+        find.textContaining('permission denied by repository fixture'),
+        findsOneWidget,
+      );
+      expect(find.text('Add lesson'), findsNWidgets(2));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  test(
+    'ordinary teacher cannot mutate curriculum through repository',
+    () async {
+      final repository = FakeCurriculumRepository(editor: false);
+      await expectLater(
+        repository.createLesson(
+          moduleId: 'module-1',
+          title: 'Unauthorized lesson',
+          objectives: null,
+          content: 'This should be denied.',
+        ),
+        throwsA(isA<StateError>()),
+      );
+    },
+  );
+
+  testWidgets('seed placeholder cannot be published from lesson controls', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = FakeCurriculumRepository(
+      modules: [
+        CurriculumModule(
+          id: 'module-seed',
+          title: 'Seed module',
+          description: '',
+          displayOrder: 1,
+          isPublished: true,
+          lessons: const [
+            CurriculumLesson(
+              id: 'lesson-seed',
+              moduleId: 'module-seed',
+              title: 'Demo lesson',
+              objectives: null,
+              content: 'DEMO LESSON ONLY: Replace with verified lesson.',
+              lessonOrder: 1,
+              isPublished: false,
+              needsContentReview: true,
+            ),
+          ],
+        ),
+      ],
+    );
+    await _pump(tester, repository);
+    await _tap(tester, 'Manage lessons');
+    expect(find.textContaining('Placeholder · unpublished'), findsOneWidget);
+    await _tap(tester, 'Publish');
+    expect(find.textContaining('known demo placeholder'), findsOneWidget);
+    expect(repository.modules.single.lessons.single.isPublished, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('lesson edit and preview use saved lesson fields', (
     tester,
   ) async {
@@ -250,6 +330,41 @@ void main() {
     expect(tester.takeException(), isNull);
     await _tap(tester, 'Manage lessons');
     expect(find.text('Add lesson'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('lesson header wraps on narrow mobile screens', (tester) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = FakeCurriculumRepository(
+      modules: const [
+        CurriculumModule(
+          id: 'narrow-module',
+          title: 'Ilocano Culture and Storytelling',
+          description: 'Cultural lessons',
+          displayOrder: 1,
+          isPublished: true,
+          lessons: [],
+          placeholderLessonCount: 5,
+          publishedPlaceholderLessonCount: 3,
+          unpublishedPlaceholderLessonCount: 2,
+        ),
+      ],
+    );
+    await _pump(tester, repository, size: const Size(360, 800));
+    await _tap(tester, 'Manage lessons');
+
+    expect(find.text('LESSONS IN THIS MODULE'), findsOneWidget);
+    expect(
+      find.text(
+        '3 published seed placeholders withheld pending editorial review',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('2 unpublished seed placeholders remain drafts'),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

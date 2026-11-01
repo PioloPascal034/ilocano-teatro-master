@@ -46,6 +46,7 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
   late Future<List<CulturalInspiration>> _inspirations;
   String? _storyId;
   String? _draftId;
+  String _draftStatus = 'draft';
   String? _error;
   bool _loading = false;
   bool _saving = false;
@@ -54,6 +55,9 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
   @override
   void initState() {
     super.initState();
+    for (final controller in _formControllers) {
+      controller.addListener(_handleFormChanged);
+    }
     _draftId = widget.initialDraftId;
     _storyId = widget.initialDraftId == null ? widget.initialStoryId : null;
     _inspirations = widget.repository.listInspirations();
@@ -73,12 +77,27 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
     }
   }
 
+  List<TextEditingController> get _formControllers => [
+    _title,
+    _message,
+    _conflict,
+    _characters,
+    _audience,
+    _stage,
+    _acknowledgment,
+  ];
+
+  void _handleFormChanged() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> _restoreDraft() async {
     setState(() => _loading = true);
     try {
       final draft = await widget.repository.getDraft(_draftId!);
       if (!mounted) return;
       _title.text = draft.title;
+      _draftStatus = draft.status;
       _storyId = draft.storyId;
       _message.text = draft.centralMessage ?? '';
       _conflict.text = draft.dramaticConflict ?? '';
@@ -95,6 +114,9 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
 
   @override
   void dispose() {
+    for (final controller in _formControllers) {
+      controller.removeListener(_handleFormChanged);
+    }
     _title.dispose();
     _message.dispose();
     _conflict.dispose();
@@ -124,7 +146,7 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
   ThemeDraft _currentDraft() => ThemeDraft(
     id: _draftId ?? '',
     title: _title.text,
-    status: 'draft',
+    status: _draftStatus,
     updatedAt: DateTime.now(),
     storyId: _storyId,
     centralMessage: _message.text,
@@ -143,6 +165,7 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
     try {
       final saved = await widget.repository.saveDraft(_currentDraft());
       _draftId = saved.id;
+      _draftStatus = saved.status;
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -158,13 +181,7 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
   }
 
   Future<void> _submit() async {
-    final incompleteStep = <bool>[
-      _title.text.trim().isEmpty,
-      _message.text.trim().isEmpty,
-      _conflict.text.trim().isEmpty,
-      _characters.text.trim().isEmpty || _audience.text.trim().isEmpty,
-      _stage.text.trim().isEmpty,
-    ].indexWhere((missing) => missing);
+    final incompleteStep = _firstIncompleteStep;
     if (incompleteStep >= 0) {
       setState(() {
         _step = incompleteStep;
@@ -185,6 +202,16 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
       if (mounted) setState(() => _error = _friendlyError(error));
     }
   }
+
+  int get _firstIncompleteStep => <bool>[
+    _title.text.trim().isEmpty,
+    _message.text.trim().isEmpty,
+    _conflict.text.trim().isEmpty,
+    _characters.text.trim().isEmpty || _audience.text.trim().isEmpty,
+    _stage.text.trim().isEmpty,
+  ].indexWhere((missing) => missing);
+
+  bool get _isComplete => _firstIncompleteStep < 0;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -308,7 +335,7 @@ class _ThemeBuilderScreenState extends State<ThemeBuilderScreen> {
                   )
                 else
                   FilledButton.icon(
-                    onPressed: _saving ? null : _submit,
+                    onPressed: _saving || !_isComplete ? null : _submit,
                     icon: const Icon(Icons.send_outlined),
                     label: const Text('Submit for review'),
                   ),
@@ -664,7 +691,7 @@ class _DraftCardState extends State<_DraftCard> {
                 widget.draft.submissions.any(
                   (submission) => submission.id == widget.focusSubmissionId,
                 ),
-            title: const Text('View full draft details'),
+            title: const Text('View details'),
             children: [
               _ReviewItem(
                 'Dramatic conflict',
@@ -699,12 +726,29 @@ class _DraftCardState extends State<_DraftCard> {
                   Text(
                     'Version ${submission.version} · ${_status(submission.status)} · ${_date(submission.submittedAt)}',
                   ),
-                  if (submission.feedback?.isNotEmpty == true)
-                    Text('Teacher feedback: ${submission.feedback}'),
                 ],
               ),
             ),
         ],
+        if (widget.draft.submissions.any(
+          (submission) => submission.feedback?.trim().isNotEmpty == true,
+        ))
+          Material(
+            color: Colors.transparent,
+            child: ExpansionTile(
+              tilePadding: EdgeInsets.zero,
+              title: const Text('View teacher feedback'),
+              children: [
+                for (final submission in widget.draft.submissions)
+                  if (submission.feedback?.trim().isNotEmpty == true)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Version ${submission.version}'),
+                      subtitle: Text(submission.feedback!),
+                    ),
+              ],
+            ),
+          ),
         if (_error != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),
@@ -717,13 +761,17 @@ class _DraftCardState extends State<_DraftCard> {
         Wrap(
           spacing: 8,
           children: [
-            if (widget.draft.editable && widget.draft.complete)
+            if (widget.draft.editable)
               OutlinedButton.icon(
                 onPressed: widget.onEdit,
                 icon: const Icon(Icons.edit_outlined),
-                label: const Text('Continue editing'),
+                label: Text(
+                  widget.draft.status == 'revision_requested'
+                      ? 'Revise draft'
+                      : 'Continue editing',
+                ),
               ),
-            if (widget.draft.editable)
+            if (widget.draft.editable && widget.draft.complete)
               FilledButton.tonalIcon(
                 onPressed: _busy ? null : _submit,
                 icon: const Icon(Icons.send_outlined),
@@ -731,7 +779,7 @@ class _DraftCardState extends State<_DraftCard> {
                   _busy
                       ? 'Submitting…'
                       : widget.draft.status == 'revision_requested'
-                      ? 'Revise & resubmit'
+                      ? 'Revise and resubmit'
                       : 'Submit for review',
                 ),
               ),

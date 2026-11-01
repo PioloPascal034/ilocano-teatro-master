@@ -208,24 +208,58 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
-                child: Row(
+                child: Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
-                    const Expanded(
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 240),
                       child: TeatroEyebrow('LESSONS IN THIS MODULE'),
                     ),
-                    Text(
-                      '${module.lessons.length} lessons',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: TeatroColors.muted,
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 220),
+                      child: Text(
+                        '${module.lessons.length} available lessons',
+                        softWrap: true,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: TeatroColors.muted,
+                        ),
                       ),
                     ),
+                    if (module.publishedPlaceholderLessonCount > 0)
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 360),
+                        child: Text(
+                          '${module.publishedPlaceholderLessonCount} published seed placeholder${module.publishedPlaceholderLessonCount == 1 ? '' : 's'} withheld pending editorial review',
+                          softWrap: true,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: TeatroColors.rust),
+                        ),
+                      ),
+                    if (data.canEdit &&
+                        module.unpublishedPlaceholderLessonCount > 0)
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 360),
+                        child: Text(
+                          '${module.unpublishedPlaceholderLessonCount} unpublished seed placeholder${module.unpublishedPlaceholderLessonCount == 1 ? '' : 's'} remain drafts',
+                          softWrap: true,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(color: TeatroColors.muted),
+                        ),
+                      ),
                   ],
                 ),
               ),
               if (module.lessons.isEmpty)
                 TeatroEmptyState(
                   title: 'No lessons in this module yet',
-                  description: data.canEdit
+                  description:
+                      module.publishedPlaceholderLessonCount > 0 ||
+                          module.unpublishedPlaceholderLessonCount > 0
+                      ? '${module.publishedPlaceholderLessonCount} published placeholder${module.publishedPlaceholderLessonCount == 1 ? '' : 's'} are withheld. ${module.unpublishedPlaceholderLessonCount} unpublished placeholder${module.unpublishedPlaceholderLessonCount == 1 ? '' : 's'} remain drafts. Replace them with approved material or unpublish them.'
+                      : data.canEdit
                       ? 'Add a lesson to start building this module.'
                       : 'Lessons will appear after they are added and published.',
                   icon: Icons.menu_book_outlined,
@@ -350,6 +384,13 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
 
   Future<void> _confirmLessonPublication(CurriculumLesson lesson) async {
     final publish = !lesson.isPublished;
+    if (publish && lesson.needsContentReview) {
+      _showMessage(
+        'This lesson is a known demo placeholder. Replace it with source-reviewed text or leave it unpublished.',
+        isError: true,
+      );
+      return;
+    }
     final confirmed = await _confirm(
       title: publish ? 'Publish lesson?' : 'Unpublish lesson?',
       message: publish
@@ -495,7 +536,7 @@ class _ModuleCard extends StatelessWidget {
             ],
             const SizedBox(height: 5),
             Text(
-              '${module.lessons.length} lessons',
+              '${module.lessons.length} approved lesson${module.lessons.length == 1 ? '' : 's'}',
               style: Theme.of(
                 context,
               ).textTheme.labelSmall?.copyWith(color: TeatroColors.muted),
@@ -610,7 +651,13 @@ class _LessonRow extends StatelessWidget {
               ),
             ),
             TeatroStatus(
-              status: lesson.isPublished ? 'Published' : 'Unpublished',
+              status: lesson.needsContentReview
+                  ? lesson.isPublished
+                        ? 'Published · placeholder'
+                        : 'Placeholder · unpublished'
+                  : lesson.isPublished
+                  ? 'Published'
+                  : 'Unpublished',
             ),
           ],
         );

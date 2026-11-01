@@ -26,6 +26,7 @@ class StudentModuleProgress {
     required this.displayOrder,
     required this.lessonCount,
     required this.completedLessonCount,
+    this.placeholderLessonCount = 0,
   });
 
   final String id;
@@ -34,6 +35,7 @@ class StudentModuleProgress {
   final int displayOrder;
   final int lessonCount;
   final int completedLessonCount;
+  final int placeholderLessonCount;
 
   bool get hasLessons => lessonCount > 0;
   bool get isComplete => hasLessons && completedLessonCount >= lessonCount;
@@ -62,6 +64,7 @@ class StudentLearningOverview {
     required this.completedLessonCount,
     required this.publishedLessonCount,
     required this.averageQuizScore,
+    this.placeholderLessonCount = 0,
     this.resumeLesson,
   });
 
@@ -69,6 +72,7 @@ class StudentLearningOverview {
   final int completedLessonCount;
   final int publishedLessonCount;
   final double? averageQuizScore;
+  final int placeholderLessonCount;
   final StudentResumeLesson? resumeLesson;
 
   int get completedModuleCount =>

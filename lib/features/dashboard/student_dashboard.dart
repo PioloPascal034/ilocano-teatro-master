@@ -288,7 +288,9 @@ class _ContinueLearningHero extends StatelessWidget {
                         const SizedBox(height: 15),
                         Text(
                           overview?.publishedLessonCount == 0
-                              ? 'No lessons are published yet.'
+                              ? (overview?.placeholderLessonCount ?? 0) > 0
+                                    ? '${overview!.placeholderLessonCount} published seed lesson${overview.placeholderLessonCount == 1 ? '' : 's'} are hidden pending editorial review.'
+                                    : 'No lessons are published yet.'
                               : 'Your next lesson will appear here when you begin learning.',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: const Color(0xFFD4DCD4)),
@@ -647,7 +649,7 @@ class _ProgressRing extends StatelessWidget {
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
           color: TeatroColors.muted,
-          fontSize: 8,
+          fontSize: 11,
         ),
       ),
     ],
@@ -862,7 +864,7 @@ class _ModuleCard extends StatelessWidget {
                             style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
                                   color: TeatroColors.muted,
-                                  fontSize: 9,
+                                  fontSize: 11,
                                 ),
                           ),
                           Text(
@@ -870,7 +872,7 @@ class _ModuleCard extends StatelessWidget {
                             style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
                                   color: TeatroColors.muted,
-                                  fontSize: 9,
+                                  fontSize: 11,
                                 ),
                           ),
                         ],
@@ -887,7 +889,9 @@ class _ModuleCard extends StatelessWidget {
                       ),
                     ] else ...[
                       Text(
-                        'No published lessons yet',
+                        module.placeholderLessonCount > 0
+                            ? '${module.placeholderLessonCount} seed lesson${module.placeholderLessonCount == 1 ? '' : 's'} hidden pending editorial review'
+                            : 'No lessons are available in this module yet',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: TeatroColors.muted,
                         ),
@@ -900,8 +904,9 @@ class _ModuleCard extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              module.hasLessons &&
-                                      module.completedLessonCount > 0
+                              !module.hasLessons
+                                  ? 'Open module'
+                                  : module.completedLessonCount > 0
                                   ? 'Continue learning'
                                   : 'Start learning',
                               maxLines: 1,

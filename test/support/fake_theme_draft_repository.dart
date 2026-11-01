@@ -22,7 +22,9 @@ class FakeThemeDraftRepository implements ThemeDraftRepository {
   @override
   Future<ThemeDraft> saveDraft(ThemeDraft draft) async {
     final saved = ThemeDraft(
-      id: draft.id.isEmpty ? 'draft-${++_id}' : draft.id,
+      id: draft.id.isEmpty
+          ? '00000000-0000-4000-8000-${(++_id).toString().padLeft(12, '0')}'
+          : draft.id,
       title: draft.title,
       status: draft.status,
       updatedAt: DateTime(2026, 11, 1),
@@ -50,6 +52,10 @@ class FakeThemeDraftRepository implements ThemeDraftRepository {
     final index = drafts.indexWhere((draft) => draft.id == id);
     if (index < 0) throw StateError('Draft not found');
     final draft = drafts[index];
+    if (!draft.editable) throw StateError('Draft is not ready for submission');
+    if (!draft.complete) {
+      throw StateError('Complete all required fields before submission.');
+    }
     _submissionVersion++;
     drafts[index] = ThemeDraft(
       id: draft.id,
@@ -76,5 +82,41 @@ class FakeThemeDraftRepository implements ThemeDraftRepository {
       ],
     );
     return 'submission-$_submissionVersion';
+  }
+
+  void requestRevision(String id, String feedback) {
+    final index = drafts.indexWhere((draft) => draft.id == id);
+    if (index < 0) throw StateError('Draft not found');
+    final draft = drafts[index];
+    if (draft.submissions.isEmpty) {
+      throw StateError('A revision requires an existing submission.');
+    }
+    final previous = draft.submissions.last;
+    final revisedSubmission = ThemeSubmission(
+      id: previous.id,
+      version: previous.version,
+      status: 'revision_requested',
+      submittedAt: previous.submittedAt,
+      content: previous.content,
+      feedback: feedback,
+    );
+    drafts[index] = ThemeDraft(
+      id: draft.id,
+      title: draft.title,
+      status: 'revision_requested',
+      updatedAt: draft.updatedAt,
+      storyId: draft.storyId,
+      inspiration: draft.inspiration,
+      centralMessage: draft.centralMessage,
+      dramaticConflict: draft.dramaticConflict,
+      characters: draft.characters,
+      targetAudience: draft.targetAudience,
+      stageConcept: draft.stageConcept,
+      sourceAcknowledgment: draft.sourceAcknowledgment,
+      submissions: [
+        ...draft.submissions.take(draft.submissions.length - 1),
+        revisedSubmission,
+      ],
+    );
   }
 }

@@ -62,6 +62,9 @@ class FakeCurriculumRepository implements CurriculumRepository {
   ];
 
   void _throwMutationError() {
+    if (!editor) {
+      throw StateError('Curriculum Editor permission is required.');
+    }
     if (mutationError != null) throw mutationError!;
   }
 

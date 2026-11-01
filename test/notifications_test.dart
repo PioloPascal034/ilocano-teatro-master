@@ -131,6 +131,11 @@ void main() {
         title: 'Test submission theme',
         status: 'draft',
         updatedAt: now,
+        centralMessage: 'A clear central message.',
+        dramaticConflict: 'A real dramatic conflict.',
+        characters: 'A lead character.',
+        targetAudience: 'The intended audience.',
+        stageConcept: 'A stage presentation.',
       ),
     );
     await drafts.submitDraft(saved.id);

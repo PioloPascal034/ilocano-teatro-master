@@ -5,10 +5,12 @@ class FakeStudentLearningRepository implements StudentLearningRepository {
   FakeStudentLearningRepository({
     this.studentId = 'student-a',
     Map<String, Map<String, String>>? progressByStudent,
+    this.includeVerifiedTestLesson = false,
   }) : progressByStudent = progressByStudent ?? {};
 
   final String studentId;
   final Map<String, Map<String, String>> progressByStudent;
+  final bool includeVerifiedTestLesson;
 
   Map<String, String> get _progress =>
       progressByStudent.putIfAbsent(studentId, () => {});
@@ -90,6 +92,22 @@ class FakeStudentLearningRepository implements StudentLearningRepository {
 
   List<LearningLesson> _lessons(String moduleId) {
     final row = _seed.firstWhere((item) => item.moduleId == moduleId);
+    if (isSeedPlaceholderLesson(row.content)) {
+      if (!includeVerifiedTestLesson || moduleId != 'module-1') return const [];
+      final status = _progress['verified-lesson-1'];
+      return [
+        LearningLesson(
+          id: 'verified-lesson-1',
+          moduleId: moduleId,
+          title: 'Verified sample lesson',
+          lessonOrder: 1,
+          objectives: 'Test-only objective.',
+          content: 'Test-only source-reviewed lesson fixture.',
+          isCompleted: status == 'completed',
+          isInProgress: status == 'in_progress',
+        ),
+      ];
+    }
     final status = _progress[row.lessonId];
     return [
       LearningLesson(
@@ -106,18 +124,24 @@ class FakeStudentLearningRepository implements StudentLearningRepository {
   }
 
   @override
-  Future<StudentLearningCatalog> loadCatalog() async => StudentLearningCatalog(
-    modules: [
-      for (final row in _seed)
-        LearningModule(
-          id: row.moduleId,
-          title: row.moduleTitle,
-          description: row.moduleDescription,
-          displayOrder: row.moduleOrder,
-          lessons: _lessons(row.moduleId),
-        ),
-    ],
-  );
+  Future<StudentLearningCatalog> loadCatalog() async {
+    final placeholderCount = _seed.length - (includeVerifiedTestLesson ? 1 : 0);
+    return StudentLearningCatalog(
+      modules: [
+        for (final row in _seed)
+          LearningModule(
+            id: row.moduleId,
+            title: row.moduleTitle,
+            description: row.moduleDescription,
+            displayOrder: row.moduleOrder,
+            lessons: _lessons(row.moduleId),
+            placeholderLessonCount:
+                includeVerifiedTestLesson && row.moduleId == 'module-1' ? 0 : 1,
+          ),
+      ],
+      placeholderLessonCount: placeholderCount,
+    );
+  }
 
   @override
   Future<LearningModule?> loadModule(String moduleId) async {

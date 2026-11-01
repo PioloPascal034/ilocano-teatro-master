@@ -57,12 +57,28 @@ class SupabaseStudentDashboardDataSource implements StudentDashboardDataSource {
         .select('module_id, title, description, display_order')
         .eq('is_published', true)
         .order('display_order');
+    final publishedModuleIds = queriedModuleRows
+        .map((row) => row['module_id'] as String)
+        .toSet();
     final queriedLessonRows = await _client
         .from('lessons')
         .select('lesson_id, module_id, title, lesson_order, content')
         .eq('is_published', true)
         .order('lesson_order');
+    final placeholderCounts = <String, int>{};
+    for (final row in queriedLessonRows) {
+      final moduleId = row['module_id'] as String;
+      if (!publishedModuleIds.contains(moduleId)) continue;
+      if (isSeedPlaceholderLesson(row['content'] as String?)) {
+        placeholderCounts.update(
+          moduleId,
+          (count) => count + 1,
+          ifAbsent: () => 1,
+        );
+      }
+    }
     final lessonRows = queriedLessonRows
+        .where((row) => publishedModuleIds.contains(row['module_id'] as String))
         .where((row) => !isSeedPlaceholderLesson(row['content'] as String?))
         .toList();
     final progressRows = await _client
@@ -83,10 +99,7 @@ class SupabaseStudentDashboardDataSource implements StudentDashboardDataSource {
       lessonsByModule.putIfAbsent(moduleId, () => []).add(lesson);
       lessonById[lesson['lesson_id'] as String] = lesson;
     }
-    final moduleRows = queriedModuleRows.where((row) {
-      final moduleId = row['module_id'] as String;
-      return (lessonsByModule[moduleId] ?? const []).isNotEmpty;
-    }).toList();
+    final moduleRows = queriedModuleRows.toList();
 
     final completedLessonIds = <String>{};
     StudentResumeLesson? resumeLesson;
@@ -132,6 +145,7 @@ class SupabaseStudentDashboardDataSource implements StudentDashboardDataSource {
         displayOrder: (module['display_order'] as num?)?.toInt() ?? 0,
         lessonCount: lessons.length,
         completedLessonCount: completed,
+        placeholderLessonCount: placeholderCounts[id] ?? 0,
       );
     }).toList();
 
@@ -166,6 +180,10 @@ class SupabaseStudentDashboardDataSource implements StudentDashboardDataSource {
       modules: modules,
       completedLessonCount: completedLessonIds.length,
       publishedLessonCount: lessonById.length,
+      placeholderLessonCount: placeholderCounts.values.fold(
+        0,
+        (total, count) => total + count,
+      ),
       averageQuizScore: averageScore,
       resumeLesson: resumeLesson,
     );

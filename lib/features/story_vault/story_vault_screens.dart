@@ -56,7 +56,11 @@ class _StoryVaultScreenState extends State<StoryVaultScreen> {
     return _LibraryData(editor: editor, stories: stories);
   }
 
-  void _reload() => setState(() => _future = _load());
+  void _reload() {
+    setState(() {
+      _future = _load();
+    });
+  }
 
   @override
   Widget build(BuildContext context) => FutureBuilder<_LibraryData>(
@@ -65,7 +69,11 @@ class _StoryVaultScreenState extends State<StoryVaultScreen> {
       final loadedStories = snapshot.data?.stories ?? const <CulturalStory>[];
       final stories = snapshot.data?.editor == true
           ? loadedStories
-          : loadedStories.where((story) => story.isPublished).toList();
+          : loadedStories
+                .where(
+                  (story) => story.isPublished && !story.needsContentReview,
+                )
+                .toList();
       final categories = <String>{
         'All',
         ...stories
@@ -351,6 +359,11 @@ class _StoryCard extends StatelessWidget {
                   _Tag(story.category),
                   if (!story.isPublished)
                     const _Tag('Draft', color: TeatroColors.rust),
+                  if (canEdit && story.needsContentReview)
+                    const _Tag(
+                      'Seed placeholder · review required',
+                      color: TeatroColors.error,
+                    ),
                   if (showProgress && story.isComplete)
                     const _Tag('Completed', color: TeatroColors.success),
                 ],
@@ -480,7 +493,11 @@ class _StoryOverviewScreenState extends State<StoryOverviewScreen> {
     future: _future,
     builder: (context, snapshot) {
       if (snapshot.hasError) {
-        return _LoadError(onRetry: () => setState(() => _future = _load()));
+        return _LoadError(
+          onRetry: () => setState(() {
+            _future = _load();
+          }),
+        );
       }
       if (!snapshot.hasData) {
         return const Center(child: CircularProgressIndicator());
@@ -492,6 +509,9 @@ class _StoryOverviewScreenState extends State<StoryOverviewScreen> {
       final canContinue = story.continueChapter;
       final canEdit = snapshot.data!.editor;
       if (!canEdit && !story.isPublished) {
+        return _UnavailableStory(onBack: widget.onBack);
+      }
+      if (!canEdit && story.needsContentReview) {
         return _UnavailableStory(onBack: widget.onBack);
       }
       return ConstrainedBox(
@@ -531,6 +551,13 @@ class _StoryOverviewScreenState extends State<StoryOverviewScreen> {
                 story.hasPublishedChapters) ...[
               const SizedBox(height: 19),
               _ProgressPanel(story: story),
+            ],
+            if (canEdit && story.needsContentReview) ...[
+              const SizedBox(height: 14),
+              const _InlineNotice(
+                text:
+                    'Known setup seed placeholder. Verify and replace its cultural summary, sources, and chapter content before publication.',
+              ),
             ],
             const SizedBox(height: 24),
             TeatroSectionTitle(
@@ -844,7 +871,9 @@ class _StoryChapterReaderScreenState extends State<StoryChapterReaderScreen> {
     try {
       await widget.repository.markChapterRead(widget.chapterId);
       if (mounted) {
-        setState(() => _future = widget.repository.loadStory(widget.storyId));
+        setState(() {
+          _future = widget.repository.loadStory(widget.storyId);
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Chapter marked as read.')),
         );
@@ -866,9 +895,9 @@ class _StoryChapterReaderScreenState extends State<StoryChapterReaderScreen> {
     builder: (context, snapshot) {
       if (snapshot.hasError) {
         return _LoadError(
-          onRetry: () => setState(
-            () => _future = widget.repository.loadStory(widget.storyId),
-          ),
+          onRetry: () => setState(() {
+            _future = widget.repository.loadStory(widget.storyId);
+          }),
         );
       }
       if (!snapshot.hasData) {
@@ -880,7 +909,10 @@ class _StoryChapterReaderScreenState extends State<StoryChapterReaderScreen> {
           onBack: () => widget.onNavigate(AppDestination.storyVault, null),
         );
       }
-      final index = story.chapters.indexWhere(
+      final readingChapters = widget.role == AppRole.teacher && widget.preview
+          ? story.chapters
+          : story.publishedChapters;
+      final index = readingChapters.indexWhere(
         (chapter) => chapter.id == widget.chapterId,
       );
       if (index < 0) {
@@ -888,16 +920,25 @@ class _StoryChapterReaderScreenState extends State<StoryChapterReaderScreen> {
           onBack: () => widget.onNavigate(AppDestination.storyDetail, story.id),
         );
       }
-      final chapter = story.chapters[index];
+      final chapter = readingChapters[index];
       if ((!story.isPublished || !chapter.isPublished) &&
           !(widget.role == AppRole.teacher && widget.preview)) {
         return _UnavailableStory(
           onBack: () => widget.onNavigate(AppDestination.storyDetail, story.id),
         );
       }
+      if (widget.role == AppRole.student && story.needsContentReview) {
+        return _UnavailableStory(
+          onBack: () => widget.onNavigate(AppDestination.storyVault, null),
+        );
+      }
       final done = story.completedChapterIds.contains(chapter.id);
+      final hasReadableText = chapter.content.trim().isNotEmpty;
       final canMark =
-          widget.role == AppRole.student && chapter.isPublished && !done;
+          widget.role == AppRole.student &&
+          chapter.isPublished &&
+          !done &&
+          hasReadableText;
       return ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 850),
         child: Column(
@@ -919,7 +960,7 @@ class _StoryChapterReaderScreenState extends State<StoryChapterReaderScreen> {
               _ProgressPanel(story: story),
             const SizedBox(height: 14),
             TeatroEyebrow(
-              'CHAPTER ${chapter.order} OF ${story.publishedChapters.length}',
+              'CHAPTER ${index + 1} OF ${readingChapters.length}',
               color: TeatroColors.rust,
             ),
             const SizedBox(height: 5),
@@ -952,15 +993,23 @@ class _StoryChapterReaderScreenState extends State<StoryChapterReaderScreen> {
                 ),
             ],
             const SizedBox(height: 18),
-            TeatroCard(
-              padding: const EdgeInsets.all(22),
-              child: SelectableText(
-                chapter.content,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(height: 1.8),
+            if (hasReadableText)
+              TeatroCard(
+                padding: const EdgeInsets.all(22),
+                child: SelectableText(
+                  chapter.content,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyLarge?.copyWith(height: 1.8),
+                ),
+              )
+            else
+              const TeatroEmptyState(
+                title: 'Chapter text is not available',
+                description:
+                    'This chapter has no saved text. Ask a Curriculum Editor to add source-verified content. It has not been marked as read.',
+                icon: Icons.menu_book_outlined,
               ),
-            ),
             if (chapter.illustrationSourceTitle?.trim().isNotEmpty == true ||
                 chapter.illustrationSourceUrl?.trim().isNotEmpty == true)
               Padding(
@@ -1014,7 +1063,7 @@ class _StoryChapterReaderScreenState extends State<StoryChapterReaderScreen> {
                             AppDestination.storyChapter,
                             StoryChapterRouteArgs(
                               storyId: story.id,
-                              chapterId: story.chapters[index - 1].id,
+                              chapterId: readingChapters[index - 1].id,
                               preview: widget.preview,
                             ),
                           ),
@@ -1025,13 +1074,13 @@ class _StoryChapterReaderScreenState extends State<StoryChapterReaderScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: index >= story.chapters.length - 1
+                    onPressed: index >= readingChapters.length - 1
                         ? null
                         : () => widget.onNavigate(
                             AppDestination.storyChapter,
                             StoryChapterRouteArgs(
                               storyId: story.id,
-                              chapterId: story.chapters[index + 1].id,
+                              chapterId: readingChapters[index + 1].id,
                               preview: widget.preview,
                             ),
                           ),
@@ -1119,31 +1168,29 @@ class _StoryPrivateImageState extends State<StoryPrivateImage> {
                   ),
                 );
         }
-        return Semantics(
-          image: true,
-          label: widget.altText?.trim().isNotEmpty == true
-              ? widget.altText
-              : 'Story illustration',
-          child: Image.memory(
-            snapshot.data!,
-            width: widget.width,
-            height: widget.height,
-            fit: widget.fit,
-            errorBuilder: (_, error, stackTrace) {
-              if (kDebugMode) {
-                debugPrint(
-                  'Story Vault image decode failed for "${widget.storagePath}": $error',
-                );
-                debugPrintStack(stackTrace: stackTrace);
-              }
-              return _ImageFailure(
-                height: widget.height,
-                width: widget.width,
-                onRetry: () => setState(_load),
+        final image = Image.memory(
+          snapshot.data!,
+          width: widget.width,
+          height: widget.height,
+          fit: widget.fit,
+          errorBuilder: (_, error, stackTrace) {
+            if (kDebugMode) {
+              debugPrint(
+                'Story Vault image decode failed for "${widget.storagePath}": $error',
               );
-            },
-          ),
+              debugPrintStack(stackTrace: stackTrace);
+            }
+            return _ImageFailure(
+              height: widget.height,
+              width: widget.width,
+              onRetry: () => setState(_load),
+            );
+          },
         );
+        if (widget.altText?.trim().isNotEmpty != true) {
+          return ExcludeSemantics(child: image);
+        }
+        return Semantics(image: true, label: widget.altText, child: image);
       },
     );
   }

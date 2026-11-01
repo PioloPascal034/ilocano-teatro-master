@@ -32,8 +32,11 @@ class _StudentLearningScreenState extends State<StudentLearningScreen> {
     _catalogFuture = widget.repository.loadCatalog();
   }
 
-  void _retry() =>
-      setState(() => _catalogFuture = widget.repository.loadCatalog());
+  void _retry() {
+    setState(() {
+      _catalogFuture = widget.repository.loadCatalog();
+    });
+  }
 
   @override
   Widget build(BuildContext context) => FutureBuilder<StudentLearningCatalog>(
@@ -56,8 +59,18 @@ class _StudentLearningScreenState extends State<StudentLearningScreen> {
             eyebrow: 'CURRICULUM',
             title: 'Your learning path',
             description:
-                '${catalog.modules.length} published learning modules are available to you.',
+                '${catalog.modules.length} published modules · ${catalog.totalLessons} approved lessons available.',
           ),
+          if (catalog.placeholderLessonCount > 0) ...[
+            TeatroCard(
+              padding: const EdgeInsets.all(13),
+              child: Text(
+                '${catalog.placeholderLessonCount} published seed lesson${catalog.placeholderLessonCount == 1 ? '' : 's'} are hidden while editors replace or unpublish demo content.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
           Align(
             alignment: Alignment.centerRight,
             child: TeatroActionButton(
@@ -209,7 +222,7 @@ class _ModuleOverviewScreenState extends State<ModuleOverviewScreen> {
       ),
       TeatroPageIntro(
         eyebrow:
-            'MODULE ${module.displayOrder.toString().padLeft(2, '0')} · ${module.lessons.length} LESSONS',
+            'MODULE ${module.displayOrder.toString().padLeft(2, '0')} · ${module.lessons.length} AVAILABLE LESSONS',
         title: module.title,
         description: module.description,
       ),
@@ -245,7 +258,9 @@ class _ModuleOverviewScreenState extends State<ModuleOverviewScreen> {
                   ),
                 ] else ...[
                   Text(
-                    'No published lessons yet',
+                    module.placeholderLessonCount > 0
+                        ? '${module.placeholderLessonCount} seed lesson${module.placeholderLessonCount == 1 ? '' : 's'} pending review'
+                        : 'No lessons available yet',
                     style: Theme.of(
                       context,
                     ).textTheme.bodySmall?.copyWith(color: TeatroColors.muted),
@@ -293,10 +308,13 @@ class _ModuleOverviewScreenState extends State<ModuleOverviewScreen> {
       const SizedBox(height: 24),
       const TeatroSectionTitle(title: 'Lessons in this module'),
       if (module.lessons.isEmpty)
-        const TeatroEmptyState(
-          title: 'No published lessons yet',
-          description:
-              'Your teacher has not published lessons for this module yet.',
+        TeatroEmptyState(
+          title: module.placeholderLessonCount > 0
+              ? 'Lessons pending editorial review'
+              : 'No published lessons yet',
+          description: module.placeholderLessonCount > 0
+              ? '${module.placeholderLessonCount} published seed lesson${module.placeholderLessonCount == 1 ? '' : 's'} are hidden. Editors need to replace or unpublish the demo content.'
+              : 'Your teacher has not published lessons for this module yet.',
           icon: Icons.menu_book_outlined,
         )
       else
@@ -553,7 +571,9 @@ class _LessonSidebar extends StatelessWidget {
         const SizedBox(height: 5),
         Text(
           module.lessons.isEmpty
-              ? 'No published lessons'
+              ? module.placeholderLessonCount > 0
+                    ? '${module.placeholderLessonCount} seed lesson${module.placeholderLessonCount == 1 ? '' : 's'} pending review'
+                    : 'No lessons available'
               : '${module.completedLessonCount} of ${module.lessons.length} lessons completed',
           style: Theme.of(
             context,
@@ -861,21 +881,24 @@ class _LearningModuleCard extends StatelessWidget {
                     ),
                     if (module.lessons.isEmpty)
                       Text(
-                        'No published lessons yet',
+                        module.placeholderLessonCount > 0
+                            ? '${module.placeholderLessonCount} seed lesson${module.placeholderLessonCount == 1 ? '' : 's'} pending review'
+                            : 'No lessons available yet',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: TeatroColors.muted,
                         ),
                       )
                     else ...[
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        runSpacing: 2,
                         children: [
                           Text(
                             '${module.lessons.length} lessons',
                             style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
                                   color: TeatroColors.muted,
-                                  fontSize: 9,
+                                  fontSize: 11,
                                 ),
                           ),
                           Text(
@@ -883,7 +906,7 @@ class _LearningModuleCard extends StatelessWidget {
                             style: Theme.of(context).textTheme.labelSmall
                                 ?.copyWith(
                                   color: TeatroColors.muted,
-                                  fontSize: 9,
+                                  fontSize: 11,
                                 ),
                           ),
                         ],

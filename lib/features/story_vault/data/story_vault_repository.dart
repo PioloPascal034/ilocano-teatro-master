@@ -72,7 +72,7 @@ class SupabaseStoryVaultRepository implements StoryVaultRepository {
         .toList();
     final completed = await _loadCompletedChapterIds(userId, chapterIds);
 
-    return stories.map((row) {
+    final loadedStories = stories.map((row) {
       final id = row['story_id'] as String;
       final chapters = chaptersByStory[id] ?? const <StoryChapter>[];
       return CulturalStory.fromMap(
@@ -83,6 +83,25 @@ class SupabaseStoryVaultRepository implements StoryVaultRepository {
         ),
       );
     }).toList();
+    if (kDebugMode) {
+      for (final story in loadedStories) {
+        final path = story.coverStoragePath;
+        if (path != null) {
+          debugPrint(
+            'Story Vault cover path loaded: story=${story.id}, path="$path".',
+          );
+        }
+        for (final chapter in story.chapters) {
+          final illustrationPath = chapter.illustrationStoragePath;
+          if (illustrationPath != null) {
+            debugPrint(
+              'Story Vault illustration path loaded: chapter=${chapter.id}, path="$illustrationPath".',
+            );
+          }
+        }
+      }
+    }
+    return loadedStories;
   }
 
   @override
@@ -171,7 +190,13 @@ class SupabaseStoryVaultRepository implements StoryVaultRepository {
               .eq('story_id', input.id!)
               .select(_storyColumns)
               .single();
-    return CulturalStory.fromMap(Map<String, dynamic>.from(row));
+    final story = CulturalStory.fromMap(Map<String, dynamic>.from(row));
+    if (kDebugMode && story.coverStoragePath != null) {
+      debugPrint(
+        'Story Vault cover path persisted: story=${story.id}, path="${story.coverStoragePath}".',
+      );
+    }
+    return story;
   }
 
   @override
@@ -202,7 +227,13 @@ class SupabaseStoryVaultRepository implements StoryVaultRepository {
               .eq('chapter_id', input.id!)
               .select(_chapterColumns)
               .single();
-    return StoryChapter.fromMap(Map<String, dynamic>.from(row));
+    final chapter = StoryChapter.fromMap(Map<String, dynamic>.from(row));
+    if (kDebugMode && chapter.illustrationStoragePath != null) {
+      debugPrint(
+        'Story Vault illustration path persisted: chapter=${chapter.id}, path="${chapter.illustrationStoragePath}".',
+      );
+    }
+    return chapter;
   }
 
   @override
@@ -236,7 +267,7 @@ class SupabaseStoryVaultRepository implements StoryVaultRepository {
     } catch (error, stackTrace) {
       if (kDebugMode) {
         debugPrint(
-          'Story Vault image download failed for "$storagePath": $error',
+          'Story Vault image download failed for "$storagePath": ${_storageDiagnostic(error)}',
         );
         debugPrintStack(stackTrace: stackTrace);
       }
@@ -266,6 +297,7 @@ class SupabaseStoryVaultRepository implements StoryVaultRepository {
           bytes,
           fileOptions: FileOptions(contentType: format.mimeType, upsert: false),
         );
+    if (kDebugMode) debugPrint('Story Vault image upload succeeded: "$path".');
     return path;
   }
 
@@ -291,6 +323,27 @@ class SupabaseStoryVaultRepository implements StoryVaultRepository {
     if (!await isCurriculumEditor()) {
       throw StateError('Curriculum Editor permission is required.');
     }
+  }
+
+  String _storageDiagnostic(Object error) {
+    if (error is StorageException) {
+      final status = error.statusCode ?? 'unknown';
+      final code = error.error ?? 'unspecified';
+      final responseText = '${error.error} ${error.message}'.toLowerCase();
+      final cause =
+          status == '401' ||
+              status == '403' ||
+              responseText.contains('unauthorized') ||
+              responseText.contains('permission')
+          ? 'authentication or Storage policy rejected the request'
+          : status == '404' ||
+                responseText.contains('not found') ||
+                responseText.contains('object does not exist')
+          ? 'the Storage object or bucket was not found'
+          : 'Storage request failed';
+      return '$cause (status: $status, code: $code, message: ${error.message})';
+    }
+    return error.toString();
   }
 
   String? _nullable(String? value) =>

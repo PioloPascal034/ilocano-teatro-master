@@ -11,6 +11,7 @@ class FakeUserProfileRepository implements UserProfileRepository {
     this.failAvatarUpload = false,
     this.failAvatarSave = false,
     this.failAvatarDelete = false,
+    this.failAvatarDownload = false,
   }) : profile = UserProfile(
          id: 'test-user',
          email: role == 'student'
@@ -29,6 +30,8 @@ class FakeUserProfileRepository implements UserProfileRepository {
   bool failAvatarUpload;
   bool failAvatarSave;
   bool failAvatarDelete;
+  bool failAvatarDownload;
+  final Set<String> failAvatarDownloadPaths = {};
   int avatarUploadCount = 0;
   int avatarDeleteCount = 0;
   final List<String?> profilePathsWhenDeleting = [];
@@ -36,6 +39,14 @@ class FakeUserProfileRepository implements UserProfileRepository {
   @override
   Future<UserProfile> loadCurrentProfile() async {
     final path = profile.avatarStoragePath;
+    if (path != null &&
+        (failAvatarDownload || failAvatarDownloadPaths.contains(path))) {
+      return profile.withAvatar(
+        storagePath: path,
+        loadError:
+            'The saved photo could not be downloaded. Retry or choose a new photo.',
+      );
+    }
     return profile.withAvatar(
       storagePath: path,
       bytes: path == null ? null : avatarFiles[path],

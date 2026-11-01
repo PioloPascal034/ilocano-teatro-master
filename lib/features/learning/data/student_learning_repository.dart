@@ -39,6 +39,9 @@ class SupabaseStudentLearningRepository implements StudentLearningRepository {
         .select('module_id, title, description, display_order')
         .eq('is_published', true)
         .order('display_order');
+    final publishedModuleIds = moduleRows
+        .map((row) => row['module_id'] as String)
+        .toSet();
     final queriedLessonRows = await _client
         .from('lessons')
         .select(
@@ -46,7 +49,20 @@ class SupabaseStudentLearningRepository implements StudentLearningRepository {
         )
         .eq('is_published', true)
         .order('lesson_order');
+    final placeholderCounts = <String, int>{};
+    for (final row in queriedLessonRows) {
+      final moduleId = row['module_id'] as String;
+      if (!publishedModuleIds.contains(moduleId)) continue;
+      if (isSeedPlaceholderLesson(row['content'] as String?)) {
+        placeholderCounts.update(
+          moduleId,
+          (count) => count + 1,
+          ifAbsent: () => 1,
+        );
+      }
+    }
     final lessonRows = queriedLessonRows
+        .where((row) => publishedModuleIds.contains(row['module_id'] as String))
         .where((row) => !isSeedPlaceholderLesson(row['content'] as String?))
         .toList();
     final progressRows = await _client
@@ -81,27 +97,25 @@ class SupabaseStudentLearningRepository implements StudentLearningRepository {
           );
     }
 
-    final modules = moduleRows
-        .where((row) {
-          final id = row['module_id'] as String;
-          return (lessonsByModule[id] ?? const <LearningLesson>[]).isNotEmpty;
-        })
-        .map((row) {
-          final id = row['module_id'] as String;
-          final lessons = List<LearningLesson>.of(
-            lessonsByModule[id] ?? const <LearningLesson>[],
-          );
-          lessons.sort((a, b) => a.lessonOrder.compareTo(b.lessonOrder));
-          return LearningModule(
-            id: id,
-            title: row['title'] as String? ?? '',
-            description: row['description'] as String? ?? '',
-            displayOrder: (row['display_order'] as num?)?.toInt() ?? 0,
-            lessons: List.unmodifiable(lessons),
-          );
-        })
-        .toList();
-    return StudentLearningCatalog(modules: List.unmodifiable(modules));
+    final modules = moduleRows.map((row) {
+      final id = row['module_id'] as String;
+      final lessons = List<LearningLesson>.of(
+        lessonsByModule[id] ?? const <LearningLesson>[],
+      );
+      lessons.sort((a, b) => a.lessonOrder.compareTo(b.lessonOrder));
+      return LearningModule(
+        id: id,
+        title: row['title'] as String? ?? '',
+        description: row['description'] as String? ?? '',
+        displayOrder: (row['display_order'] as num?)?.toInt() ?? 0,
+        lessons: List.unmodifiable(lessons),
+        placeholderLessonCount: placeholderCounts[id] ?? 0,
+      );
+    }).toList();
+    return StudentLearningCatalog(
+      modules: List.unmodifiable(modules),
+      placeholderLessonCount: placeholderCounts.values.fold(0, (a, b) => a + b),
+    );
   }
 
   @override

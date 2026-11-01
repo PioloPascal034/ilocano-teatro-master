@@ -49,6 +49,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
   String? _coverPath;
   String? _savedCoverPath;
   String? _stagedCoverPath;
+  bool _coverDecorative = false;
   List<StoryChapter> _chapters = const [];
   bool _isPublished = false;
   bool _busy = false;
@@ -108,6 +109,8 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     _coverPath = story.coverStoragePath;
     _savedCoverPath = story.coverStoragePath;
     _coverAlt.text = story.coverAltText ?? '';
+    _coverDecorative =
+        story.coverStoragePath != null && story.coverAltText == null;
     _coverCaption.text = story.coverCaption ?? '';
     _coverSourceTitle.text = story.coverSourceTitle ?? '';
     _coverSourceUrl.text = story.coverSourceUrl ?? '';
@@ -147,7 +150,22 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
       setState(() => _error = 'Enter a story title before saving.');
       return;
     }
-    if (_coverPath != null && _coverAlt.text.trim().isEmpty) {
+    if ((publish ?? _isPublished) &&
+        isKnownSeedStoryPlaceholder(
+          title: _title.text,
+          summary: _summary.text,
+          culturalBackground: _background.text,
+          sourceTitle: _sourceTitle.text,
+        )) {
+      setState(
+        () => _error =
+            'This known seed entry is not approved cultural content. Replace its placeholder summary with source-reviewed information, or unpublish it before saving.',
+      );
+      return;
+    }
+    if (_coverPath != null &&
+        !_coverDecorative &&
+        _coverAlt.text.trim().isEmpty) {
       setState(() => _error = 'Add alt text for the cover image.');
       return;
     }
@@ -168,7 +186,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
           sourceTitle: _sourceTitle.text,
           sourceUrl: _sourceUrl.text,
           coverStoragePath: _coverPath,
-          coverAltText: _coverAlt.text,
+          coverAltText: _coverDecorative ? null : _coverAlt.text,
           coverCaption: _coverCaption.text,
           coverSourceTitle: _coverSourceTitle.text,
           coverSourceUrl: _coverSourceUrl.text,
@@ -218,6 +236,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
       setState(() {
         _coverPath = path;
         _stagedCoverPath = path;
+        _coverDecorative = false;
         _error = null;
       });
       if (previousStaged != null) await _cleanup(previousStaged);
@@ -227,7 +246,10 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
   }
 
   Future<void> _removeCover() async {
-    setState(() => _coverPath = null);
+    setState(() {
+      _coverPath = null;
+      _coverDecorative = false;
+    });
     final staged = _stagedCoverPath;
     _stagedCoverPath = null;
     if (staged != null) await _cleanup(staged);
@@ -301,6 +323,15 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
         ),
         const SizedBox(height: 16),
         if (_error != null) _EditorError(message: _error!),
+        if (isKnownSeedStoryPlaceholder(
+          title: _title.text,
+          summary: _summary.text,
+          culturalBackground: _background.text,
+          sourceTitle: _sourceTitle.text,
+        ))
+          const _EditorHint(
+            'Known setup seed placeholder. Biag ni Lam-ang must be source-reviewed; do not treat this entry or its chapter text as approved cultural content.',
+          ),
         _textField(_title, 'Story title', requiredField: true),
         _textField(_summary, 'Summary', maxLines: 3),
         Row(
@@ -345,14 +376,33 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                 ),
             ],
           ),
+          if (_coverPath != null)
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _coverDecorative,
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(() {
+                      _coverDecorative = value ?? false;
+                      if (_coverDecorative) _coverAlt.clear();
+                    }),
+              title: const Text('Decorative image (no alt text)'),
+              subtitle: const Text(
+                'Use this when the image adds no information beyond nearby text.',
+              ),
+            ),
+          if (_coverPath != null && !_coverDecorative)
+            _textField(
+              _coverAlt,
+              'Cover alt text (accessibility description)',
+              requiredField: true,
+            ),
+          _textField(_coverCaption, 'Cover caption (optional)'),
+          _textField(_coverSourceTitle, 'Cover attribution title (optional)'),
           _textField(
-            _coverAlt,
-            'Cover alt text',
-            requiredField: _coverPath != null,
+            _coverSourceUrl,
+            'Cover attribution URL (optional; source link)',
           ),
-          _textField(_coverCaption, 'Cover caption'),
-          _textField(_coverSourceTitle, 'Cover image source'),
-          _textField(_coverSourceUrl, 'Cover image source URL'),
         ],
         const SizedBox(height: 10),
         Row(
@@ -466,6 +516,7 @@ class _StoryChapterEditorScreenState extends State<StoryChapterEditorScreen> {
   String? _illustrationPath;
   String? _savedIllustrationPath;
   String? _stagedIllustrationPath;
+  bool _illustrationDecorative = false;
   String? _error;
 
   @override
@@ -502,6 +553,9 @@ class _StoryChapterEditorScreenState extends State<StoryChapterEditorScreen> {
         _illustrationPath = chapter.illustrationStoragePath;
         _savedIllustrationPath = chapter.illustrationStoragePath;
         _illustrationAlt.text = chapter.illustrationAltText ?? '';
+        _illustrationDecorative =
+            chapter.illustrationStoragePath != null &&
+            chapter.illustrationAltText == null;
         _illustrationCaption.text = chapter.illustrationCaption ?? '';
         _illustrationSourceTitle.text = chapter.illustrationSourceTitle ?? '';
         _illustrationSourceUrl.text = chapter.illustrationSourceUrl ?? '';
@@ -563,6 +617,7 @@ class _StoryChapterEditorScreenState extends State<StoryChapterEditorScreen> {
       setState(() {
         _illustrationPath = path;
         _stagedIllustrationPath = path;
+        _illustrationDecorative = false;
         _error = null;
       });
       if (previous != null) await _cleanup(previous);
@@ -582,7 +637,9 @@ class _StoryChapterEditorScreenState extends State<StoryChapterEditorScreen> {
       );
       return;
     }
-    if (_illustrationPath != null && _illustrationAlt.text.trim().isEmpty) {
+    if (_illustrationPath != null &&
+        !_illustrationDecorative &&
+        _illustrationAlt.text.trim().isEmpty) {
       setState(() => _error = 'Add alt text for the chapter illustration.');
       return;
     }
@@ -602,7 +659,9 @@ class _StoryChapterEditorScreenState extends State<StoryChapterEditorScreen> {
           sourceUrl: _sourceUrl.text,
           isPublished: publish ?? (_chapter?.isPublished ?? false),
           illustrationStoragePath: _illustrationPath,
-          illustrationAltText: _illustrationAlt.text,
+          illustrationAltText: _illustrationDecorative
+              ? null
+              : _illustrationAlt.text,
           illustrationCaption: _illustrationCaption.text,
           illustrationSourceTitle: _illustrationSourceTitle.text,
           illustrationSourceUrl: _illustrationSourceUrl.text,
@@ -628,7 +687,10 @@ class _StoryChapterEditorScreenState extends State<StoryChapterEditorScreen> {
   }
 
   Future<void> _removeIllustration() async {
-    setState(() => _illustrationPath = null);
+    setState(() {
+      _illustrationPath = null;
+      _illustrationDecorative = false;
+    });
     final staged = _stagedIllustrationPath;
     _stagedIllustrationPath = null;
     if (staged != null) await _cleanup(staged);
@@ -674,8 +736,8 @@ class _StoryChapterEditorScreenState extends State<StoryChapterEditorScreen> {
         if (_error != null) _EditorError(message: _error!),
         _textField(_title, 'Chapter title *'),
         _textField(_content, 'Chapter text', minLines: 10),
-        _textField(_sourceTitle, 'Chapter source title'),
-        _textField(_sourceUrl, 'Chapter source URL'),
+        _textField(_sourceTitle, 'Chapter source title (optional)'),
+        _textField(_sourceUrl, 'Chapter source URL (optional)'),
         const SizedBox(height: 12),
         TeatroSectionTitle(
           title: 'Chapter illustration',
@@ -712,10 +774,36 @@ class _StoryChapterEditorScreenState extends State<StoryChapterEditorScreen> {
                 ),
             ],
           ),
-          _textField(_illustrationAlt, 'Illustration alt text', minLines: 1),
-          _textField(_illustrationCaption, 'Illustration caption'),
-          _textField(_illustrationSourceTitle, 'Illustration source'),
-          _textField(_illustrationSourceUrl, 'Illustration source URL'),
+          if (_illustrationPath != null)
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _illustrationDecorative,
+              onChanged: _busy
+                  ? null
+                  : (value) => setState(() {
+                      _illustrationDecorative = value ?? false;
+                      if (_illustrationDecorative) _illustrationAlt.clear();
+                    }),
+              title: const Text('Decorative image (no alt text)'),
+              subtitle: const Text(
+                'Use this when the illustration adds no information beyond nearby text.',
+              ),
+            ),
+          if (_illustrationPath != null && !_illustrationDecorative)
+            _textField(
+              _illustrationAlt,
+              'Illustration alt text (accessibility description)',
+              minLines: 1,
+            ),
+          _textField(_illustrationCaption, 'Illustration caption (optional)'),
+          _textField(
+            _illustrationSourceTitle,
+            'Illustration attribution title (optional)',
+          ),
+          _textField(
+            _illustrationSourceUrl,
+            'Illustration attribution URL (optional; source link)',
+          ),
         ],
         Row(
           children: [

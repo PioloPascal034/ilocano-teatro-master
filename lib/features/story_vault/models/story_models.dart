@@ -38,6 +38,12 @@ class CulturalStory {
   final Set<String> completedChapterIds;
 
   String get category => _nonEmpty(genre) ?? _nonEmpty(storyType) ?? 'Other';
+  bool get needsContentReview => isKnownSeedStoryPlaceholder(
+    title: title,
+    summary: summary,
+    culturalBackground: culturalBackground,
+    sourceTitle: sourceTitle,
+  );
   int get completedCount => publishedChapters
       .where((chapter) => completedChapterIds.contains(chapter.id))
       .length;
@@ -249,3 +255,30 @@ class StoryChapterEditorRouteArgs {
 
 String? _nonEmpty(String? value) =>
     value == null || value.trim().isEmpty ? null : value.trim();
+
+bool isKnownSeedStoryPlaceholder({
+  required String title,
+  required String summary,
+  String? culturalBackground,
+  String? sourceTitle,
+}) {
+  final normalizedTitle = title.trim().toLowerCase();
+  final normalizedSummary = summary.trim().toLowerCase();
+  final normalizedBackground = (culturalBackground ?? '').trim().toLowerCase();
+  final normalizedSource = (sourceTitle ?? '').trim().toLowerCase();
+  final hasPendingSeedMetadata =
+      normalizedBackground.contains(
+        'source verification and cultural context pending teacher review',
+      ) ||
+      normalizedSource.contains('source citation pending verification');
+  return normalizedTitle == 'biag ni lam-ang' &&
+          (normalizedSummary.startsWith(
+                'placeholder entry for the ilocano epic.',
+              ) ||
+              hasPendingSeedMetadata) ||
+      normalizedTitle == 'angalo' &&
+          (normalizedSummary.startsWith(
+                'placeholder entry for folklore associated with angalo.',
+              ) ||
+              hasPendingSeedMetadata);
+}

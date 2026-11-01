@@ -12,6 +12,138 @@ import 'support/fake_story_vault_repository.dart';
 import 'support/fake_theme_draft_repository.dart';
 
 void main() {
+  test('recognizes only the known setup story placeholders', () {
+    expect(
+      isKnownSeedStoryPlaceholder(
+        title: 'Biag ni Lam-ang',
+        summary:
+            'Placeholder entry for the Ilocano epic. Full text and source need review.',
+      ),
+      isTrue,
+    );
+    expect(
+      isKnownSeedStoryPlaceholder(
+        title: 'Biag ni Lam-ang',
+        summary: 'A source-reviewed summary with verified citations.',
+      ),
+      isFalse,
+    );
+    expect(
+      isKnownSeedStoryPlaceholder(
+        title: 'Biag ni Lam-ang',
+        summary: 'A rewritten summary.',
+        sourceTitle: 'Source citation pending verification',
+      ),
+      isTrue,
+    );
+  });
+
+  testWidgets('student Story Vault withholds a published seed placeholder', (
+    tester,
+  ) async {
+    final repository = FakeStoryVaultRepository(
+      stories: [
+        storyFixture(
+          title: 'Biag ni Lam-ang',
+          summary:
+              'Placeholder entry for the Ilocano epic. Full text and source need review.',
+          chapters: [chapterFixture()],
+        ),
+        storyFixture(id: 'verified-story', title: 'Verified source story'),
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: StoryVaultScreen(
+              key: const ValueKey('student-library'),
+              role: AppRole.student,
+              repository: repository,
+              onOpenStory: (_) {},
+              onReadChapter: (_, _, {preview = false}) {},
+              onUseStory: (_) {},
+              onEditStory: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Verified source story'), findsOneWidget);
+    expect(find.text('Biag ni Lam-ang'), findsNothing);
+  });
+
+  testWidgets('Story Vault renders authenticated repository image bytes', (
+    tester,
+  ) async {
+    final logo = await rootBundle.load('assets/branding/applogo.png');
+    final bytes = logo.buffer.asUint8List();
+    const publishedPath = 'story-1/cover/published.png';
+    const draftPath = 'story-draft/cover/draft.png';
+    final studentRepository = FakeStoryVaultRepository(
+      stories: [
+        storyFixture(coverStoragePath: publishedPath, coverAltText: 'Cover'),
+      ],
+    )..images[publishedPath] = bytes;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: StoryVaultScreen(
+              role: AppRole.student,
+              repository: studentRepository,
+              onOpenStory: (_) {},
+              onReadChapter: (_, _, {preview = false}) {},
+              onUseStory: (_) {},
+              onEditStory: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(Image), findsOneWidget);
+
+    final editorRepository = FakeStoryVaultRepository(
+      editor: true,
+      stories: [
+        storyFixture(
+          id: 'story-draft',
+          title: 'Unpublished editor preview',
+          isPublished: false,
+          coverStoragePath: draftPath,
+          coverAltText: 'Draft cover',
+        ),
+      ],
+    )..images[draftPath] = bytes;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: StoryVaultScreen(
+              key: const ValueKey('editor-library'),
+              role: AppRole.teacher,
+              repository: editorRepository,
+              onOpenStory: (_) {},
+              onReadChapter: (_, _, {preview = false}) {},
+              onUseStory: (_) {},
+              onEditStory: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Unpublished editor preview'), findsOneWidget);
+    expect(find.byType(Image), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   test(
     'completion uses published chapters only and continue selects first unfinished',
     () {
@@ -268,6 +400,73 @@ void main() {
       expect((nextArguments as StoryChapterRouteArgs).chapterId, 'chapter-2');
     },
   );
+
+  testWidgets('empty chapter content cannot be marked as read', (tester) async {
+    final repository = FakeStoryVaultRepository(
+      stories: [
+        storyFixture(chapters: [chapterFixture(content: '   ')]),
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: StoryChapterReaderScreen(
+            storyId: 'story-1',
+            chapterId: 'chapter-1',
+            preview: false,
+            role: AppRole.student,
+            repository: repository,
+            onNavigate: (_, _) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Chapter text is not available'), findsOneWidget);
+    expect(find.text('Mark as Read'), findsNothing);
+    expect(repository.readChapterIds, isEmpty);
+  });
+
+  testWidgets('Curriculum Editor cannot accidentally publish the seed epic', (
+    tester,
+  ) async {
+    final repository = FakeStoryVaultRepository(
+      editor: true,
+      stories: [
+        storyFixture(
+          title: 'Biag ni Lam-ang',
+          summary:
+              'Placeholder entry for the Ilocano epic. Full text and source need review.',
+          isPublished: false,
+          chapters: [chapterFixture()],
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: StoryEditorScreen(
+              storyId: 'story-1',
+              repository: repository,
+              onBack: () {},
+              onPreview: (_) {},
+              onEditChapter: (_, _) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Publish story'));
+    await tester.tap(find.text('Publish story'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('known seed entry'), findsOneWidget);
+    expect(repository.stories.single.isPublished, isFalse);
+  });
 
   testWidgets('ordinary teacher cannot access story editor controls', (
     tester,

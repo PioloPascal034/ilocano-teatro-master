@@ -200,6 +200,7 @@ class _AppShellState extends State<AppShell> {
             AppDestination.lesson,
             AppDestination.quiz,
             AppDestination.storyDetail,
+            AppDestination.storyChapter,
             AppDestination.submissionReview,
           }
         : const {
@@ -444,7 +445,11 @@ class _DesktopSidebar extends StatelessWidget {
         const Divider(),
         ListTile(
           contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-          leading: _UserAvatar(size: 32, profile: profile),
+          leading: _UserAvatar(
+            size: 32,
+            profile: profile,
+            onTap: () => onSelect(AppDestination.profile),
+          ),
           title: Text(
             profile?.fullName.trim().isNotEmpty == true
                 ? profile!.fullName
@@ -537,7 +542,11 @@ class _TopBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 7),
-        _UserAvatar(size: 34, profile: profile),
+        _UserAvatar(
+          size: 34,
+          profile: profile,
+          onTap: () => onSelect(AppDestination.profile),
+        ),
       ],
     ),
   );
@@ -740,14 +749,37 @@ class _BrandMark extends StatelessWidget {
 }
 
 class _UserAvatar extends StatelessWidget {
-  const _UserAvatar({required this.size, this.profile});
+  const _UserAvatar({required this.size, required this.onTap, this.profile});
 
   final double size;
   final UserProfile? profile;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) =>
-      ProfileAvatar(profile: profile, size: size);
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: profile?.avatarLoadError == null
+        ? 'Open profile and account settings'
+        : 'Open profile. The saved photo could not be loaded.',
+    child: Tooltip(
+      message: 'Open Profile',
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onTap,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: Center(
+              child: ProfileAvatar(profile: profile, size: size),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 String _pageTitle(AppDestination destination) => switch (destination) {

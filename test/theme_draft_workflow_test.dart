@@ -7,6 +7,40 @@ import 'package:ilocano_teatro_master/features/drafts/theme_draft_screens.dart';
 import 'support/fake_theme_draft_repository.dart';
 
 void main() {
+  test('draft completeness requires every required concept field', () {
+    final incomplete = ThemeDraft(
+      id: 'draft',
+      title: 'A concept',
+      status: 'draft',
+      updatedAt: DateTime(2026),
+      centralMessage: 'A message',
+    );
+    expect(incomplete.complete, isFalse);
+    expect(incomplete.editable, isTrue);
+
+    final complete = ThemeDraft(
+      id: 'draft',
+      title: 'A concept',
+      status: 'draft',
+      updatedAt: DateTime(2026),
+      centralMessage: 'A message',
+      dramaticConflict: 'A conflict',
+      characters: 'A character',
+      targetAudience: 'An audience',
+      stageConcept: 'A stage concept',
+    );
+    expect(complete.complete, isTrue);
+    expect(
+      ThemeDraft(
+        id: 'submitted',
+        title: complete.title,
+        status: 'under_review',
+        updatedAt: complete.updatedAt,
+      ).editable,
+      isFalse,
+    );
+  });
+
   test(
     'fake repository creates, edits, restores, and versions drafts',
     () async {
@@ -47,12 +81,41 @@ void main() {
       final submitted = await repository.getDraft(updated.id);
       expect(submitted.status, 'submitted');
       expect(submitted.submissions.map((item) => item.version), [1]);
-      await repository.submitDraft(updated.id);
       expect(
-        (await repository.getDraft(
-          updated.id,
-        )).submissions.map((item) => item.version),
-        [1, 2],
+        () => repository.submitDraft(updated.id),
+        throwsStateError,
+        reason: 'A submitted snapshot cannot be submitted or edited again.',
+      );
+
+      repository.requestRevision(updated.id, 'Clarify the staging choice.');
+      final revision = await repository.getDraft(updated.id);
+      final revised = await repository.saveDraft(
+        ThemeDraft(
+          id: revision.id,
+          title: 'Revised river play',
+          status: revision.status,
+          updatedAt: revision.updatedAt,
+          centralMessage: revision.centralMessage,
+          dramaticConflict: revision.dramaticConflict,
+          characters: revision.characters,
+          targetAudience: revision.targetAudience,
+          stageConcept: 'A blue cloth becomes the flood and recedes.',
+          submissions: revision.submissions,
+        ),
+      );
+      expect(revised.status, 'revision_requested');
+      await repository.submitDraft(revised.id);
+      final resubmitted = await repository.getDraft(revised.id);
+      expect(resubmitted.status, 'submitted');
+      expect(resubmitted.submissions.map((item) => item.version), [1, 2]);
+      expect(resubmitted.submissions.first.content['title'], 'River Story');
+      expect(
+        resubmitted.submissions.last.content['title'],
+        'Revised river play',
+      );
+      expect(
+        resubmitted.submissions.first.feedback,
+        'Clarify the staging choice.',
       );
     },
   );
@@ -118,6 +181,35 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('incomplete concept cannot submit from the review step', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ThemeBuilderScreen(repository: FakeThemeDraftRepository()),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButton<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('6. Review and save').last);
+    await tester.pumpAndSettle();
+
+    final submit = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Submit for review'),
+    );
+    expect(submit.onPressed, isNull);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'draft list shows a genuine empty state for an empty fake repository',
     (tester) async {
@@ -125,9 +217,11 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: StudentDraftsScreen(
-              repository: repository,
-              onOpenBuilder: (_) {},
+            body: SingleChildScrollView(
+              child: StudentDraftsScreen(
+                repository: repository,
+                onOpenBuilder: (_) {},
+              ),
             ),
           ),
         ),
@@ -137,6 +231,40 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('incomplete draft is editable but cannot be submitted', (
+    tester,
+  ) async {
+    final repository = FakeThemeDraftRepository();
+    await repository.saveDraft(
+      ThemeDraft(
+        id: '',
+        title: 'Incomplete concept',
+        status: 'draft',
+        updatedAt: DateTime(2026, 11, 1),
+        centralMessage: 'A saved central message.',
+      ),
+    );
+    String? openedId;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StudentDraftsScreen(
+            repository: repository,
+            onOpenBuilder: (id) => openedId = id,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('View details'), findsOneWidget);
+    expect(find.text('Continue editing'), findsOneWidget);
+    expect(find.text('Submit for review'), findsNothing);
+    await tester.tap(find.text('Continue editing'));
+    expect(openedId, repository.drafts.single.id);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets(
     'student drafts show saved feedback and immutable version history',
@@ -164,9 +292,11 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: StudentDraftsScreen(
-              repository: repository,
-              onOpenBuilder: (_) {},
+            body: SingleChildScrollView(
+              child: StudentDraftsScreen(
+                repository: repository,
+                onOpenBuilder: (_) {},
+              ),
             ),
           ),
         ),
@@ -176,6 +306,8 @@ void main() {
         find.text('Version 1 · Revision requested · 30 Oct 2026'),
         findsOneWidget,
       );
+      await tester.tap(find.text('View teacher feedback'));
+      await tester.pumpAndSettle();
       expect(
         find.textContaining('Clarify the main character’s choice.'),
         findsOneWidget,

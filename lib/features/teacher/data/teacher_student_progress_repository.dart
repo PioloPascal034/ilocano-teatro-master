@@ -76,12 +76,23 @@ class SupabaseTeacherStudentProgressRepository
         .select('id, full_name')
         .inFilter('id', studentIds)
         .eq('role', 'student');
+    final publishedModules = await _client
+        .from('learning_modules')
+        .select('module_id')
+        .eq('is_published', true);
+    final publishedModuleIds = publishedModules
+        .map((row) => row['module_id'] as String)
+        .toSet();
     final queriedLessons = await _client
         .from('lessons')
-        .select('lesson_id, content')
+        .select('lesson_id, module_id, content')
         .eq('is_published', true);
     final lessons = queriedLessons
-        .where((row) => !isSeedPlaceholderLesson(row['content'] as String?))
+        .where(
+          (row) =>
+              publishedModuleIds.contains(row['module_id'] as String) &&
+              !isSeedPlaceholderLesson(row['content'] as String?),
+        )
         .toList();
     final progress = await _client
         .from('lesson_progress')

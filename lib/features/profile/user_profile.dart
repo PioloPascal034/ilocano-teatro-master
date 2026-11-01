@@ -13,6 +13,7 @@ class UserProfile {
     this.avatarUrl,
     this.avatarStoragePath,
     this.avatarBytes,
+    this.avatarLoadError,
   });
 
   final String id;
@@ -26,21 +27,26 @@ class UserProfile {
   final String? avatarUrl;
   final String? avatarStoragePath;
   final Uint8List? avatarBytes;
+  final String? avatarLoadError;
 
-  UserProfile withAvatar({String? storagePath, Uint8List? bytes}) =>
-      UserProfile(
-        id: id,
-        email: email,
-        fullName: fullName,
-        role: role,
-        school: school,
-        yearLevel: yearLevel,
-        section: section,
-        department: department,
-        avatarUrl: avatarUrl,
-        avatarStoragePath: storagePath,
-        avatarBytes: bytes,
-      );
+  UserProfile withAvatar({
+    String? storagePath,
+    Uint8List? bytes,
+    String? loadError,
+  }) => UserProfile(
+    id: id,
+    email: email,
+    fullName: fullName,
+    role: role,
+    school: school,
+    yearLevel: yearLevel,
+    section: section,
+    department: department,
+    avatarUrl: avatarUrl,
+    avatarStoragePath: storagePath,
+    avatarBytes: bytes,
+    avatarLoadError: loadError,
+  );
 
   String get firstName {
     final normalized = fullName.trim();

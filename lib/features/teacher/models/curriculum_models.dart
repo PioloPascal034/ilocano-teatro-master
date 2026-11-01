@@ -28,6 +28,9 @@ class CurriculumModule {
     required this.displayOrder,
     required this.isPublished,
     required this.lessons,
+    this.placeholderLessonCount = 0,
+    this.publishedPlaceholderLessonCount = 0,
+    this.unpublishedPlaceholderLessonCount = 0,
   });
 
   final String id;
@@ -36,4 +39,7 @@ class CurriculumModule {
   final int displayOrder;
   final bool isPublished;
   final List<CurriculumLesson> lessons;
+  final int placeholderLessonCount;
+  final int publishedPlaceholderLessonCount;
+  final int unpublishedPlaceholderLessonCount;
 }

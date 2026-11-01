@@ -1,6 +1,5 @@
-import 'dart:typed_data';
-
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/app_routes.dart';
@@ -176,6 +175,34 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
+  Future<void> _retryAvatarDownload() async {
+    if (_photoBusy) return;
+    setState(() {
+      _photoBusy = true;
+      _photoError = null;
+    });
+    try {
+      final refreshed = await widget.repository.loadCurrentProfile();
+      if (!mounted) return;
+      _publishProfile(refreshed);
+      setState(() {
+        _photoError = refreshed.avatarLoadError;
+        _photoBusy = false;
+      });
+      if (refreshed.avatarLoadError == null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Profile photo loaded.')));
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _photoError = _message(error);
+        _photoBusy = false;
+      });
+    }
+  }
+
   Future<void> _uploadAvatar(UserProfile profile) async {
     final bytes = _pendingAvatar;
     if (bytes == null || _photoBusy) return;
@@ -186,14 +213,55 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
     String? newPath;
     var pathPersisted = false;
+    var rollbackFailed = false;
+    var cleanupFailed = false;
+    var cleanupUnconfirmed = false;
     try {
       newPath = await widget.repository.uploadAvatar(bytes);
       await widget.repository.saveAvatarStoragePath(newPath);
       pathPersisted = true;
 
       final refreshed = await widget.repository.loadCurrentProfile();
+      if (kDebugMode) {
+        debugPrint(
+          'Profile avatar replacement verification: expected_path="$newPath", saved_path="${refreshed.avatarStoragePath ?? '(null)'}", has_downloaded_bytes=${refreshed.avatarBytes != null}, download_message="${refreshed.avatarLoadError ?? '(none)'}".',
+        );
+      }
       if (refreshed.avatarStoragePath != newPath) {
+        pathPersisted = false;
         throw StateError('The saved profile photo could not be confirmed.');
+      }
+      if (refreshed.avatarLoadError != null || refreshed.avatarBytes == null) {
+        // A successful row update is not enough: do not retire the old object
+        // until the newly referenced private image can actually be downloaded.
+        UserProfile restored;
+        try {
+          await widget.repository.saveAvatarStoragePath(
+            profile.avatarStoragePath,
+          );
+          restored = await widget.repository.loadCurrentProfile();
+          if (restored.avatarStoragePath != profile.avatarStoragePath) {
+            throw StateError(
+              'The previous profile photo could not be restored.',
+            );
+          }
+        } catch (rollbackError, stackTrace) {
+          rollbackFailed = true;
+          if (kDebugMode) {
+            debugPrint(
+              'Profile photo reference rollback failed: $rollbackError',
+            );
+            debugPrintStack(stackTrace: stackTrace);
+          }
+          throw StateError(
+            'The new photo could not be downloaded and the previous saved reference could not be restored. The previous image file was retained; retry after checking your connection.',
+          );
+        }
+        pathPersisted = false;
+        _publishProfile(restored);
+        throw StateError(
+          'The new photo could not be downloaded. Your previous photo was restored.',
+        );
       }
       if (!mounted) return;
       _publishProfile(refreshed);
@@ -203,23 +271,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         try {
           await widget.repository.deleteAvatar(previousPath);
         } catch (_) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Photo updated. The previous image could not be cleaned up.',
-                ),
-              ),
-            );
-          }
+          cleanupFailed = true;
         }
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Profile photo updated.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            cleanupFailed
+                ? 'Profile photo updated. The previous image could not be cleaned up.'
+                : 'Profile photo updated.',
+          ),
+        ),
+      );
     } catch (error) {
-      if (!pathPersisted && newPath != null) {
+      if (kDebugMode) {
+        debugPrint(
+          'Profile avatar replacement outcome: user_id=${profile.id}, new_path="${newPath ?? '(not uploaded)'}", database_reference_confirmed=$pathPersisted, rollback_failed=$rollbackFailed, cleanup_failed=$cleanupFailed, cleanup_unconfirmed=$cleanupUnconfirmed, error=$error.',
+        );
+      }
+      if (!pathPersisted && newPath != null && !rollbackFailed) {
         try {
           final savedAfterError = await widget.repository.loadCurrentProfile();
           if (savedAfterError.avatarStoragePath == newPath) {
@@ -255,15 +326,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               return;
             }
           } else {
-            await widget.repository.deleteAvatar(newPath);
+            try {
+              await widget.repository.deleteAvatar(newPath);
+            } catch (_) {
+              cleanupFailed = true;
+            }
           }
         } catch (_) {
           // If the commit state cannot be read, keep both objects so the
           // previous avatar cannot be lost or the new reference broken.
+          cleanupUnconfirmed = true;
         }
       }
       if (!mounted) return;
-      if (pathPersisted && newPath != null) {
+      if (rollbackFailed) {
+        _publishProfile(profile);
+        setState(() {
+          _photoError = _message(error);
+          _photoBusy = false;
+        });
+      } else if (pathPersisted && newPath != null) {
         // Persistence succeeded but refresh failed. Keep the current device and
         // header consistent with the path already stored in Supabase.
         _publishProfile(profile.withAvatar(storagePath: newPath, bytes: bytes));
@@ -275,7 +357,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         });
       } else {
         setState(() {
-          _photoError = _message(error);
+          final cleanupMessage = cleanupUnconfirmed
+              ? ' The upload cleanup could not be confirmed; both files were kept to protect your saved photo.'
+              : cleanupFailed
+              ? ' The unused upload could not be removed; retry after checking your connection.'
+              : '';
+          _photoError = '${_message(error)}$cleanupMessage';
           _photoBusy = false;
         });
       }
@@ -392,7 +479,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final student = widget.role == AppRole.student;
       final role = student ? 'Student' : 'Teacher / Reviewer';
       final compact = MediaQuery.sizeOf(context).width < 600;
-      final displayedProfile = _pendingAvatar == null
+      final displayedProfile = _pendingAvatar == null || _photoError != null
           ? profile
           : profile.withAvatar(
               storagePath: profile.avatarStoragePath,
@@ -413,37 +500,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 builder: (context, constraints) {
                   final identity = Row(
                     children: [
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          ProfileAvatar(
-                            profile: displayedProfile,
-                            size: compact ? 54 : 66,
-                            backgroundColor: const Color(0xFFDCA77D),
-                            foregroundColor: const Color(0xFF69371F),
-                          ),
-                          Positioned(
-                            right: -3,
-                            bottom: -3,
-                            child: Material(
-                              color: TeatroColors.rust,
-                              shape: const CircleBorder(),
-                              child: IconButton(
-                                tooltip: 'Change photo',
-                                visualDensity: VisualDensity.compact,
-                                constraints: const BoxConstraints.tightFor(
-                                  width: 32,
-                                  height: 32,
-                                ),
-                                padding: EdgeInsets.zero,
-                                onPressed: _photoBusy ? null : _chooseAvatar,
-                                color: Colors.white,
-                                icon: const Icon(Icons.camera_alt_outlined),
-                                iconSize: 17,
-                              ),
-                            ),
-                          ),
-                        ],
+                      ProfileAvatar(
+                        profile: displayedProfile,
+                        size: compact ? 54 : 66,
+                        backgroundColor: const Color(0xFFDCA77D),
+                        foregroundColor: const Color(0xFF69371F),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -506,6 +567,36 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   ),
                               ],
                             ),
+                            if (profile.avatarLoadError != null &&
+                                _photoError == null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Wrap(
+                                  spacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    const Text(
+                                      'Your saved photo is unavailable.',
+                                      style: TextStyle(
+                                        color: Color(0xFFFFD6C2),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: _photoBusy
+                                          ? null
+                                          : _retryAvatarDownload,
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: const Color(
+                                          0xFFFFD6C2,
+                                        ),
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              ),
                           ],
                         ),
                       ),
@@ -608,7 +699,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           FilledButton.icon(
                             onPressed: () => _uploadAvatar(profile),
                             icon: const Icon(Icons.cloud_upload_outlined),
-                            label: const Text('Upload Photo'),
+                            label: Text(
+                              _photoError == null
+                                  ? 'Upload Photo'
+                                  : 'Retry Upload',
+                            ),
                           ),
                         ],
                       ),

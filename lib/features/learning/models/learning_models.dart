@@ -37,6 +37,7 @@ class LearningModule {
     required this.description,
     required this.displayOrder,
     required this.lessons,
+    this.placeholderLessonCount = 0,
   });
 
   final String id;
@@ -44,6 +45,7 @@ class LearningModule {
   final String description;
   final int displayOrder;
   final List<LearningLesson> lessons;
+  final int placeholderLessonCount;
 
   int get completedLessonCount =>
       lessons.where((lesson) => lesson.isCompleted).length;
@@ -53,9 +55,13 @@ class LearningModule {
 }
 
 class StudentLearningCatalog {
-  const StudentLearningCatalog({required this.modules});
+  const StudentLearningCatalog({
+    required this.modules,
+    this.placeholderLessonCount = 0,
+  });
 
   final List<LearningModule> modules;
+  final int placeholderLessonCount;
 
   int get totalLessons =>
       modules.fold(0, (total, module) => total + module.lessons.length);
