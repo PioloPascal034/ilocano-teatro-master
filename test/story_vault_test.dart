@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'package:ilocano_teatro_master/core/storage/private_media_repository.dart';
 import 'package:ilocano_teatro_master/app/app_routes.dart';
 import 'package:ilocano_teatro_master/app/app_theme.dart';
 import 'package:ilocano_teatro_master/features/drafts/theme_draft_screens.dart';
@@ -665,6 +667,8 @@ void main() {
           body: StoryPrivateImage(
             repository: repository,
             storagePath: path,
+            mediaType: PrivateMediaType.storyCover,
+            recordId: 'story-1',
             altText: 'Story cover',
           ),
         ),
@@ -680,6 +684,39 @@ void main() {
     expect(repository.downloadCalls, 2);
     expect(find.byType(Image), findsOneWidget);
     expect(find.text('Image unavailable'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('staged private cover bytes render before the path is saved', (
+    tester,
+  ) async {
+    const path = 'story-1/cover/staged-cover.png';
+    final repository = FakeStoryVaultRepository();
+    final asset = await rootBundle.load('assets/branding/applogo.png');
+    final bytes = asset.buffer.asUint8List(
+      asset.offsetInBytes,
+      asset.lengthInBytes,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StoryPrivateImage(
+            repository: repository,
+            storagePath: path,
+            mediaType: PrivateMediaType.storyCover,
+            recordId: 'story-1',
+            altText: 'Staged cover preview',
+            localBytes: bytes,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.text('Image unavailable'), findsNothing);
+    expect(repository.downloadCalls, 0);
     expect(tester.takeException(), isNull);
   });
 

@@ -44,6 +44,7 @@ Future<void> _pumpShell(
             TeacherStudentProgress(
               id: 'assigned-student',
               fullName: 'Assigned Learner',
+              avatarStoragePath: null,
               completedLessons: 1,
               totalLessons: 5,
               quizAverage: 80,

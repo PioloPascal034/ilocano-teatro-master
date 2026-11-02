@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../app/app_routes.dart';
 import '../../app/app_theme.dart';
+import '../../core/storage/private_media_avatar.dart';
 import '../../core/widgets/teatro_widgets.dart';
 import '../profile/user_profile.dart';
 import '../teacher/data/teacher_student_progress_repository.dart';
@@ -171,6 +172,14 @@ class TeacherDashboardScreen extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
+                      PrivateMediaAvatar(
+                        userId: student.id,
+                        storagePath: student.avatarStoragePath,
+                        label: 'Photo of ${student.fullName}',
+                        fallback: _initials(student.fullName),
+                        radius: 20,
+                      ),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           student.fullName.trim().isEmpty
@@ -195,6 +204,19 @@ class TeacherDashboardScreen extends StatelessWidget {
     await progressRepository.loadAssignedStudents(),
     await progressRepository.loadDashboardMetrics(),
   );
+
+  String _initials(String name) {
+    final words = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((word) => word.isNotEmpty);
+    final value = words
+        .take(2)
+        .map((word) => String.fromCharCode(word.runes.first))
+        .join()
+        .toUpperCase();
+    return value.isEmpty ? '?' : value;
+  }
 }
 
 class _TeacherMetric extends StatelessWidget {
