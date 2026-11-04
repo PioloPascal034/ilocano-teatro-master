@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:ilocano_teatro_master/core/storage/private_media_repository.dart';
 import 'package:ilocano_teatro_master/features/story_vault/data/story_image_validator.dart';
 import 'package:ilocano_teatro_master/features/story_vault/data/story_vault_repository.dart';
 import 'package:ilocano_teatro_master/features/story_vault/models/story_models.dart';
@@ -148,10 +149,14 @@ class FakeStoryVaultRepository implements StoryVaultRepository {
   }
 
   @override
-  Future<Uint8List> downloadImage(String storagePath) async {
+  Future<Uint8List> downloadImage({
+    required PrivateMediaType type,
+    required String recordId,
+    required String cacheVersion,
+  }) async {
     downloadCalls++;
     if (failDownloads) throw StateError('Storage download failed');
-    final bytes = images[storagePath];
+    final bytes = images[cacheVersion];
     if (bytes == null) throw StateError('Image unavailable');
     return bytes;
   }

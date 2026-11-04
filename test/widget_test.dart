@@ -11,6 +11,9 @@ import 'support/fake_quiz_repository.dart';
 import 'support/fake_theme_draft_repository.dart';
 import 'support/fake_student_dashboard_data_source.dart';
 import 'support/fake_teacher_review_repository.dart';
+import 'support/fake_story_vault_repository.dart';
+import 'support/fake_notification_repository.dart';
+import 'support/fake_quiz_management_repository.dart';
 
 void main() {
   testWidgets('student app shell renders shared identity and empty learning', (
@@ -35,6 +38,9 @@ void main() {
           teacherProgressRepository: FakeTeacherStudentProgressRepository(),
           curriculumRepository: FakeCurriculumRepository(),
           quizRepository: FakeQuizRepository(),
+          quizManagementRepository: FakeQuizManagementRepository(editor: false),
+          storyVaultRepository: FakeStoryVaultRepository(),
+          notificationRepository: FakeNotificationRepository(),
           themeDraftRepository: FakeThemeDraftRepository(),
           teacherReviewRepository: FakeTeacherReviewRepository(
             assignedStudentIds: const {},

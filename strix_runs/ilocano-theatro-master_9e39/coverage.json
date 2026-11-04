@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-04 04:22:24 UTC",
+  "run_id": "ilocano-theatro-master_9e39",
+  "run_name": "ilocano-theatro-master_9e39",
+  "scope": {
+    "targets": [
+      {
+        "type": "local_code",
+        "details": {
+          "target_path": "C:\\Users\\markk\\Documents\\GitHub\\Theatro master\\ilocano_theatro_master\\ilocano-theatro-master",
+          "workspace_subdir": "ilocano-theatro-master"
+        },
+        "original": "C:\\Users\\markk\\Documents\\GitHub\\Theatro master\\ilocano_theatro_master\\ilocano-theatro-master"
+      }
+    ],
+    "scan_mode": "deep",
+    "scope_mode": "auto",
+    "diff_scope": {
+      "active": false,
+      "mode": "auto"
+    },
+    "instruction": ""
+  },
+  "summary": {
+    "surfaces_reviewed": 0,
+    "outcomes": {},
+    "findings_filed": 0,
+    "gaps": 1
+  },
+  "machine_observed": {
+    "agents": [
+      {
+        "agent_id": "7321b188",
+        "agent_name": "Root Agent",
+        "status": "failed",
+        "skills": [],
+        "task": "\n\nLocal Codebases: - C:\\Users\\markk\\Documents\\GitHub\\Theatro master\\ilocano_theatro_master\\ilocano-theatro-master (available at: /workspace/ilocano-theatro-master; this is the user's real directory, mounted live and writable — .git/.agents/.codex are read-only)",
+        "is_root": true
+      }
+    ],
+    "skills_exercised": [],
+    "findings_filed": 0,
+    "source": "runtime"
+  },
+  "completeness": {
+    "complete": false,
+    "scan_status": "stopped",
+    "exit_reason": null,
+    "caveats": [
+      "The scan ended with status 'stopped' rather than completing, so coverage reflects only the work finished before it stopped."
+    ]
+  },
+  "entries": [],
+  "gaps": [
+    {
+      "kind": "agent_recorded_no_coverage",
+      "agent_name": "Root Agent",
+      "detail": "Root Agent ran (status: failed) without recording any coverage. Whatever it examined is absent from this record."
+    }
+  ]
+}

@@ -3,6 +3,7 @@
 .env*
 !.env.example
 supabase.local.json
+.qa-test-accounts.local.json
 *.sql
 !supabase/migrations/*.sql
 *.class

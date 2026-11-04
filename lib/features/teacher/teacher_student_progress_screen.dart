@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../app/app_theme.dart';
+import '../../core/storage/private_media_avatar.dart';
 import '../../core/widgets/teatro_widgets.dart';
 import 'data/teacher_student_progress_repository.dart';
 import '../../core/widgets/teatro_design_widgets.dart';
@@ -167,9 +168,11 @@ class _StudentProgressTile extends StatelessWidget {
   Widget build(BuildContext context) => ListTile(
     onTap: onTap,
     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-    leading: CircleAvatar(
-      backgroundColor: const Color(0xFFE5C4AE),
-      child: Text(_initials(student.fullName)),
+    leading: PrivateMediaAvatar(
+      userId: student.id,
+      storagePath: student.avatarStoragePath,
+      label: 'Photo of ${student.fullName}',
+      fallback: _initials(student.fullName),
     ),
     title: Text(_provided(student.fullName)),
     subtitle: Column(

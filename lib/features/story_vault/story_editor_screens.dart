@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/app_theme.dart';
+import '../../core/storage/private_media_repository.dart';
 import '../../core/widgets/teatro_widgets.dart';
 import '../../core/widgets/teatro_design_widgets.dart';
 import 'data/story_vault_repository.dart';
@@ -47,6 +49,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
 
   String? _storyId;
   String? _coverPath;
+  Uint8List? _stagedCoverBytes;
   String? _savedCoverPath;
   String? _stagedCoverPath;
   bool _coverDecorative = false;
@@ -107,6 +110,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     _sourceTitle.text = story.sourceTitle ?? '';
     _sourceUrl.text = story.sourceUrl ?? '';
     _coverPath = story.coverStoragePath;
+    _stagedCoverBytes = null;
     _savedCoverPath = story.coverStoragePath;
     _coverAlt.text = story.coverAltText ?? '';
     _coverDecorative =
@@ -235,6 +239,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
       final previousStaged = _stagedCoverPath;
       setState(() {
         _coverPath = path;
+        _stagedCoverBytes = bytes;
         _stagedCoverPath = path;
         _coverDecorative = false;
         _error = null;
@@ -248,6 +253,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
   Future<void> _removeCover() async {
     setState(() {
       _coverPath = null;
+      _stagedCoverBytes = null;
       _coverDecorative = false;
     });
     final staged = _stagedCoverPath;
@@ -355,7 +361,10 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
           StoryPrivateImage(
             repository: widget.repository,
             storagePath: _coverPath,
+            mediaType: PrivateMediaType.storyCover,
+            recordId: _storyId!,
             altText: _coverAlt.text,
+            localBytes: _stagedCoverBytes,
             height: 200,
             fit: BoxFit.contain,
           ),
@@ -751,6 +760,8 @@ class _StoryChapterEditorScreenState extends State<StoryChapterEditorScreen> {
           StoryPrivateImage(
             repository: widget.repository,
             storagePath: _illustrationPath,
+            mediaType: PrivateMediaType.chapterIllustration,
+            recordId: _chapter!.id,
             altText: _illustrationAlt.text,
             height: 220,
             fit: BoxFit.contain,

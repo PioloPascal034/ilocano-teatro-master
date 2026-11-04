@@ -1,0 +1,2 @@
+[functions.get-private-media]
+verify_jwt = true

@@ -11,9 +11,12 @@ class FakeCurriculumRepository implements CurriculumRepository {
     this.loadError,
     this.mutationError,
     this.loadWait,
+    this.supportsLessonMetadata = true,
   }) : _modules = List<CurriculumModule>.of(modules ?? _sampleModules);
 
   bool editor;
+  @override
+  final bool supportsLessonMetadata;
   final Object? permissionError;
   final Object? loadError;
   final Object? mutationError;
@@ -161,6 +164,9 @@ class FakeCurriculumRepository implements CurriculumRepository {
     required String title,
     required String? objectives,
     required String content,
+    Map<String, String> sections = const <String, String>{},
+    String overview = '',
+    int? estimatedReadingMinutes,
   }) async {
     _throwMutationError();
     final moduleIndex = _modules.indexWhere((module) => module.id == moduleId);
@@ -172,6 +178,9 @@ class FakeCurriculumRepository implements CurriculumRepository {
       title: title,
       objectives: objectives,
       content: content,
+      sections: sections,
+      overview: overview,
+      estimatedReadingMinutes: estimatedReadingMinutes,
       lessonOrder: module.lessons.length + 1,
       isPublished: false,
     );
@@ -185,6 +194,9 @@ class FakeCurriculumRepository implements CurriculumRepository {
     required String title,
     required String? objectives,
     required String content,
+    Map<String, String> sections = const <String, String>{},
+    String overview = '',
+    int? estimatedReadingMinutes,
   }) async {
     _throwMutationError();
     for (var i = 0; i < _modules.length; i++) {
@@ -198,6 +210,9 @@ class FakeCurriculumRepository implements CurriculumRepository {
         title: title,
         objectives: objectives,
         content: content,
+        sections: sections,
+        overview: overview,
+        estimatedReadingMinutes: estimatedReadingMinutes,
         lessonOrder: old.lessonOrder,
         isPublished: old.isPublished,
       );
@@ -224,6 +239,9 @@ class FakeCurriculumRepository implements CurriculumRepository {
         title: old.title,
         objectives: old.objectives,
         content: old.content,
+        sections: old.sections,
+        overview: old.overview,
+        estimatedReadingMinutes: old.estimatedReadingMinutes,
         lessonOrder: old.lessonOrder,
         isPublished: isPublished,
       );
@@ -281,6 +299,9 @@ class FakeCurriculumRepository implements CurriculumRepository {
     title: lesson.title,
     objectives: lesson.objectives,
     content: lesson.content,
+    sections: lesson.sections,
+    overview: lesson.overview,
+    estimatedReadingMinutes: lesson.estimatedReadingMinutes,
     lessonOrder: lessonOrder,
     isPublished: lesson.isPublished,
   );

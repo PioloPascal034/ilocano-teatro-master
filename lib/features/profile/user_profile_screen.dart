@@ -8,6 +8,7 @@ import '../../core/widgets/teatro_widgets.dart';
 import '../../core/widgets/teatro_design_widgets.dart';
 import 'profile_avatar.dart';
 import 'profile_avatar_validator.dart';
+import 'class_assignment_panel.dart';
 import 'user_profile.dart';
 import 'user_profile_repository.dart';
 
@@ -721,6 +722,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
             if (_pendingAvatar != null || _photoError != null || _photoBusy)
               SizedBox(height: compact ? 10 : 14),
+            ClassAssignmentPanel(
+              role: widget.role,
+              repository: widget.repository,
+            ),
+            SizedBox(height: compact ? 10 : 14),
             TeatroCard(
               padding: EdgeInsets.all(compact ? 15 : 22),
               child: Form(

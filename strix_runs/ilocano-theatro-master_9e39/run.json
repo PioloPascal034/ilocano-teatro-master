@@ -1,0 +1,59 @@
+{
+  "run_id": "ilocano-theatro-master_9e39",
+  "run_name": "ilocano-theatro-master_9e39",
+  "start_time": "2026-11-04T04:20:38.312366+00:00",
+  "end_time": "2026-11-04T04:22:24.065056+00:00",
+  "status": "stopped",
+  "auth_mode": "api_key",
+  "targets_info": [
+    {
+      "type": "local_code",
+      "details": {
+        "target_path": "C:\\Users\\markk\\Documents\\GitHub\\Theatro master\\ilocano_theatro_master\\ilocano-theatro-master",
+        "workspace_subdir": "ilocano-theatro-master"
+      },
+      "original": "C:\\Users\\markk\\Documents\\GitHub\\Theatro master\\ilocano_theatro_master\\ilocano-theatro-master"
+    }
+  ],
+  "llm_usage": {
+    "requests": 0,
+    "input_tokens": 0,
+    "input_tokens_details": [
+      {
+        "cache_write_tokens": 0,
+        "cached_tokens": 0
+      }
+    ],
+    "output_tokens": 0,
+    "output_tokens_details": [
+      {
+        "reasoning_tokens": 0
+      }
+    ],
+    "total_tokens": 0,
+    "request_usage_entries": [],
+    "cost": 0.0,
+    "providers": {},
+    "agents": []
+  },
+  "scan_mode": "deep",
+  "instruction": "",
+  "user_instruction": null,
+  "non_interactive": false,
+  "local_sources": [
+    {
+      "source_path": "C:\\Users\\markk\\Documents\\GitHub\\Theatro master\\ilocano_theatro_master\\ilocano-theatro-master",
+      "workspace_subdir": "ilocano-theatro-master",
+      "protect_metadata": true,
+      "read_only": false
+    }
+  ],
+  "workspace_files": [],
+  "workspace_mount": null,
+  "diff_scope": {
+    "active": false,
+    "mode": "auto"
+  },
+  "scope_mode": "auto",
+  "diff_base": null
+}

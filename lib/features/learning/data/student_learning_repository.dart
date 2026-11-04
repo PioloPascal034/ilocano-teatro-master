@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/learning_models.dart';
+import 'lesson_schema.dart';
 
 abstract interface class StudentLearningRepository {
   Future<StudentLearningCatalog> loadCatalog();
@@ -42,13 +43,8 @@ class SupabaseStudentLearningRepository implements StudentLearningRepository {
     final publishedModuleIds = moduleRows
         .map((row) => row['module_id'] as String)
         .toSet();
-    final queriedLessonRows = await _client
-        .from('lessons')
-        .select(
-          'lesson_id, module_id, title, objectives, content, lesson_order',
-        )
-        .eq('is_published', true)
-        .order('lesson_order');
+    final loaded = await loadLessonRows(_client, publishedOnly: true);
+    final queriedLessonRows = loaded.rows;
     final placeholderCounts = <String, int>{};
     for (final row in queriedLessonRows) {
       final moduleId = row['module_id'] as String;
@@ -91,6 +87,10 @@ class SupabaseStudentLearningRepository implements StudentLearningRepository {
               lessonOrder: (row['lesson_order'] as num?)?.toInt() ?? 0,
               objectives: row['objectives'] as String?,
               content: row['content'] as String? ?? '',
+              sections: _sectionsFromRow(row['sections']),
+              overview: row['overview'] as String? ?? '',
+              estimatedReadingMinutes:
+                  (row['estimated_reading_minutes'] as num?)?.toInt(),
               isCompleted: status == 'completed',
               isInProgress: status == 'in_progress',
             ),
@@ -167,5 +167,12 @@ class SupabaseStudentLearningRepository implements StudentLearningRepository {
       'status': 'completed',
       'completed_at': DateTime.now().toUtc().toIso8601String(),
     }, onConflict: 'student_id,lesson_id');
+  }
+
+  Map<String, String> _sectionsFromRow(Object? raw) {
+    if (raw is! Map) return const <String, String>{};
+    return Map.unmodifiable(
+      raw.map((key, value) => MapEntry('$key', '$value')),
+    );
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:ilocano_teatro_master/features/profile/user_profile.dart';
+import 'package:ilocano_teatro_master/features/profile/class_assignment.dart';
 import 'package:ilocano_teatro_master/features/profile/user_profile_repository.dart';
 import 'package:ilocano_teatro_master/features/profile/profile_avatar_validator.dart';
 import 'package:ilocano_teatro_master/features/teacher/data/teacher_student_progress_repository.dart';
@@ -35,6 +36,8 @@ class FakeUserProfileRepository implements UserProfileRepository {
   int avatarUploadCount = 0;
   int avatarDeleteCount = 0;
   final List<String?> profilePathsWhenDeleting = [];
+  TeacherConnection? teacherConnection;
+  ActiveClassCode? activeClassCode;
 
   @override
   Future<UserProfile> loadCurrentProfile() async {
@@ -104,6 +107,39 @@ class FakeUserProfileRepository implements UserProfileRepository {
       throw StateError('Avatar path does not belong to this account');
     }
     avatarFiles.remove(storagePath);
+  }
+
+  @override
+  Future<TeacherConnection?> loadTeacherConnection() async => teacherConnection;
+
+  @override
+  Future<ActiveClassCode?> loadActiveClassCode() async => activeClassCode;
+
+  @override
+  Future<ActiveClassCode> generateClassCode() async {
+    activeClassCode = ActiveClassCode(
+      id: 'class-code-1',
+      code: 'IT-TESTCODE',
+      expiresAt: DateTime.now().toUtc().add(const Duration(days: 30)),
+    );
+    return activeClassCode!;
+  }
+
+  @override
+  Future<void> revokeClassCode() async {
+    activeClassCode = null;
+  }
+
+  @override
+  Future<TeacherConnection> joinClassCode(String code) async {
+    if (code != 'IT-TESTCODE') {
+      throw StateError('That class code is invalid, expired, or revoked.');
+    }
+    teacherConnection = const TeacherConnection(
+      teacherId: 'teacher-1',
+      teacherName: 'Test Teacher',
+    );
+    return teacherConnection!;
   }
 }
 

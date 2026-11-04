@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/storage/private_media_repository.dart';
 import '../models/story_models.dart';
 import 'story_image_validator.dart';
 
@@ -13,7 +14,11 @@ abstract interface class StoryVaultRepository {
   Future<StoryChapter> saveChapter(StoryChapterInput input);
   Future<void> reorderChapters(String storyId, List<String> chapterIds);
   Future<void> markChapterRead(String chapterId);
-  Future<Uint8List> downloadImage(String storagePath);
+  Future<Uint8List> downloadImage({
+    required PrivateMediaType type,
+    required String recordId,
+    required String cacheVersion,
+  });
   Future<String> uploadImage({
     required String storyId,
     String? chapterId,
@@ -23,8 +28,15 @@ abstract interface class StoryVaultRepository {
 }
 
 class SupabaseStoryVaultRepository implements StoryVaultRepository {
-  SupabaseStoryVaultRepository({SupabaseClient? client})
-    : _providedClient = client;
+  SupabaseStoryVaultRepository({
+    SupabaseClient? client,
+    PrivateMediaRepository? mediaRepository,
+  }) : _providedClient = client,
+       _mediaRepository =
+           mediaRepository ??
+           SupabasePrivateMediaRepository(
+             client: client ?? Supabase.instance.client,
+           );
 
   static const bucketName = 'ilocano-story-media';
   static const _storyColumns =
@@ -33,6 +45,7 @@ class SupabaseStoryVaultRepository implements StoryVaultRepository {
       'chapter_id,story_id,title,content,chapter_order,source_title,source_url,is_published,illustration_storage_path,illustration_alt_text,illustration_caption,illustration_source_title,illustration_source_url';
 
   final SupabaseClient? _providedClient;
+  final PrivateMediaRepository _mediaRepository;
   SupabaseClient get _client => _providedClient ?? Supabase.instance.client;
 
   String get _userId {
@@ -260,19 +273,17 @@ class SupabaseStoryVaultRepository implements StoryVaultRepository {
   }
 
   @override
-  Future<Uint8List> downloadImage(String storagePath) async {
+  Future<Uint8List> downloadImage({
+    required PrivateMediaType type,
+    required String recordId,
+    required String cacheVersion,
+  }) async {
     _userId;
-    try {
-      return await _client.storage.from(bucketName).download(storagePath);
-    } catch (error, stackTrace) {
-      if (kDebugMode) {
-        debugPrint(
-          'Story Vault image download failed for "$storagePath": ${_storageDiagnostic(error)}',
-        );
-        debugPrintStack(stackTrace: stackTrace);
-      }
-      rethrow;
-    }
+    return _mediaRepository.download(
+      type: type,
+      recordId: recordId,
+      cacheVersion: cacheVersion,
+    );
   }
 
   @override
@@ -323,27 +334,6 @@ class SupabaseStoryVaultRepository implements StoryVaultRepository {
     if (!await isCurriculumEditor()) {
       throw StateError('Curriculum Editor permission is required.');
     }
-  }
-
-  String _storageDiagnostic(Object error) {
-    if (error is StorageException) {
-      final status = error.statusCode ?? 'unknown';
-      final code = error.error ?? 'unspecified';
-      final responseText = '${error.error} ${error.message}'.toLowerCase();
-      final cause =
-          status == '401' ||
-              status == '403' ||
-              responseText.contains('unauthorized') ||
-              responseText.contains('permission')
-          ? 'authentication or Storage policy rejected the request'
-          : status == '404' ||
-                responseText.contains('not found') ||
-                responseText.contains('object does not exist')
-          ? 'the Storage object or bucket was not found'
-          : 'Storage request failed';
-      return '$cause (status: $status, code: $code, message: ${error.message})';
-    }
-    return error.toString();
   }
 
   String? _nullable(String? value) =>

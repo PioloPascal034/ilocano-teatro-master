@@ -1,12 +1,12 @@
 import 'dart:math';
 import 'dart:ui' as ui;
-import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/storage/private_media_repository.dart';
 import 'profile_avatar_validator.dart';
+import 'class_assignment.dart';
 import 'user_profile.dart';
 
 abstract interface class UserProfileRepository {
@@ -25,13 +25,31 @@ abstract interface class UserProfileRepository {
   Future<void> saveAvatarStoragePath(String? storagePath);
 
   Future<void> deleteAvatar(String storagePath);
+
+  Future<TeacherConnection?> loadTeacherConnection();
+
+  Future<ActiveClassCode?> loadActiveClassCode();
+
+  Future<ActiveClassCode> generateClassCode();
+
+  Future<void> revokeClassCode();
+
+  Future<TeacherConnection> joinClassCode(String code);
 }
 
 class SupabaseUserProfileRepository implements UserProfileRepository {
-  SupabaseUserProfileRepository({SupabaseClient? client})
-    : _client = client ?? Supabase.instance.client;
+  SupabaseUserProfileRepository({
+    SupabaseClient? client,
+    PrivateMediaRepository? mediaRepository,
+  }) : _client = client ?? Supabase.instance.client,
+       _mediaRepository =
+           mediaRepository ??
+           SupabasePrivateMediaRepository(
+             client: client ?? Supabase.instance.client,
+           );
 
   final SupabaseClient _client;
+  final PrivateMediaRepository _mediaRepository;
 
   String get _projectOrigin => Uri.parse(_client.rest.url).origin;
 
@@ -73,46 +91,30 @@ class SupabaseUserProfileRepository implements UserProfileRepository {
     final storagePath = profile.avatarStoragePath;
     if (storagePath == null || storagePath.isEmpty) return profile;
 
-    var stage = 'validating saved object path';
     try {
       _requireOwnedPath(user.id, storagePath);
-      stage = 'checking active session';
       final downloadSessionUserId = _client.auth.currentSession?.user.id;
-      if (kDebugMode) {
-        debugPrint(
-          'Profile avatar request: project_origin="$_projectOrigin", operation=storage.object.get_authenticated, bucket="$bucketName", object_name="$storagePath", auth_user_id=${user.id}, session_user_id=${downloadSessionUserId ?? '(no active session)'}.',
-        );
-      }
       if (downloadSessionUserId != user.id) {
         throw StateError(
           'The active Supabase session changed before the avatar download.',
         );
       }
-      stage = 'authenticated Storage object download';
-      final bytes = await _client.storage
-          .from(bucketName)
-          .download(storagePath);
-      stage = 'decoding downloaded image bytes';
+      final bytes = await _mediaRepository.download(
+        type: PrivateMediaType.avatar,
+        recordId: user.id,
+        cacheVersion: storagePath,
+      );
       final dimensions = await _validateImageBytes(bytes);
       if (kDebugMode) {
         debugPrint(
-          'Profile avatar response: bucket="$bucketName", object_name="$storagePath", bytes=${bytes.length}, decoded=${dimensions.$1}x${dimensions.$2}.',
+          'Profile avatar decoded: ${dimensions.$1}x${dimensions.$2}.',
         );
       }
       return profile.withAvatar(storagePath: storagePath, bytes: bytes);
     } catch (error, stackTrace) {
       if (kDebugMode) {
-        debugPrint(
-          'Profile avatar load failed at $stage for "$storagePath": ${_storageDiagnostic(error)}',
-        );
+        debugPrint('Profile avatar load failed: ${_storageDiagnostic(error)}');
         debugPrintStack(stackTrace: stackTrace);
-        if (stage == 'authenticated Storage object download' &&
-            error is StorageException) {
-          await _diagnoseRawAuthenticatedGet(
-            userId: user.id,
-            storagePath: storagePath,
-          );
-        }
       }
       return profile.withAvatar(
         storagePath: storagePath,
@@ -294,6 +296,80 @@ class SupabaseUserProfileRepository implements UserProfileRepository {
     }
   }
 
+  @override
+  Future<TeacherConnection?> loadTeacherConnection() async {
+    _user;
+    final rows = await _client.rpc('get_my_teacher_connection');
+    if (rows is! List || rows.isEmpty) return null;
+    final row = Map<String, dynamic>.from(rows.first);
+    return TeacherConnection(
+      teacherId: row['teacher_id'] as String,
+      teacherName: row['teacher_name'] as String? ?? 'Teacher',
+    );
+  }
+
+  @override
+  Future<ActiveClassCode?> loadActiveClassCode() async {
+    _user;
+    final result = await _client.rpc('get_active_class_join_code');
+    if (result is! List || result.isEmpty) return null;
+    return _classCodeFromRow(Map<String, dynamic>.from(result.first));
+  }
+
+  @override
+  Future<ActiveClassCode> generateClassCode() async {
+    _user;
+    final result = await _client.rpc('create_class_join_code');
+    if (result is! List || result.isEmpty) {
+      throw const FormatException('The class code could not be created.');
+    }
+    return _classCodeFromRow(Map<String, dynamic>.from(result.first));
+  }
+
+  @override
+  Future<void> revokeClassCode() async {
+    _user;
+    await _client.rpc('revoke_class_join_code');
+  }
+
+  @override
+  Future<TeacherConnection> joinClassCode(String code) async {
+    _user;
+    try {
+      final result = await _client.rpc(
+        'join_class_code',
+        params: {'input_code': code},
+      );
+      if (result is! List || result.isEmpty) {
+        throw const FormatException('The class code could not be used.');
+      }
+      final row = Map<String, dynamic>.from(result.first);
+      return TeacherConnection(
+        teacherId: row['teacher_id'] as String,
+        teacherName: row['teacher_name'] as String? ?? 'Teacher',
+      );
+    } on PostgrestException catch (error) {
+      if (error.code == 'P0002' ||
+          error.message.contains('invalid, expired, or revoked')) {
+        throw StateError('That class code is invalid, expired, or revoked.');
+      }
+      if (error.code == '23505' ||
+          error.message.contains('already connected')) {
+        throw StateError(
+          'Your account is already connected to another teacher.',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  ActiveClassCode _classCodeFromRow(Map<String, dynamic> row) =>
+      ActiveClassCode(
+        id: row['class_code_id'] as String,
+        code: row['code'] as String,
+        expiresAt: DateTime.parse(row['expires_at'] as String).toUtc(),
+      );
+
   Future<(int, int)> _validateImageBytes(Uint8List bytes) async {
     final codec = await ui.instantiateImageCodec(bytes);
     try {
@@ -303,127 +379,6 @@ class SupabaseUserProfileRepository implements UserProfileRepository {
       return dimensions;
     } finally {
       codec.dispose();
-    }
-  }
-
-  Future<void> _diagnoseRawAuthenticatedGet({
-    required String userId,
-    required String storagePath,
-  }) async {
-    final session = _client.auth.currentSession;
-    if (session == null) {
-      debugPrint('Avatar raw HTTP diagnostic skipped: no active user session.');
-      return;
-    }
-    if (session.user.id != userId) {
-      debugPrint(
-        'Avatar raw HTTP diagnostic skipped: active session user does not match profile user.',
-      );
-      return;
-    }
-    const publishableKey = String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
-    if (publishableKey.isEmpty) {
-      debugPrint(
-        'Avatar raw HTTP diagnostic skipped: publishable key define is unavailable.',
-      );
-      return;
-    }
-
-    final restUri = Uri.parse(_client.rest.url);
-    final projectSegments = restUri.pathSegments.toList();
-    if (projectSegments.length >= 2 &&
-        projectSegments[projectSegments.length - 2] == 'rest' &&
-        projectSegments.last == 'v1') {
-      projectSegments.removeRange(
-        projectSegments.length - 2,
-        projectSegments.length,
-      );
-    }
-    final uri = restUri.replace(
-      pathSegments: [
-        ...projectSegments,
-        'storage',
-        'v1',
-        'object',
-        bucketName,
-        ...storagePath.split('/'),
-      ],
-    );
-    final client = http.Client();
-    try {
-      final jwtContext = _safeJwtContext(session.accessToken);
-      debugPrint(
-        'Avatar raw HTTP diagnostic request: project_origin="${uri.origin}", method=GET, path="${uri.path}", auth_user_id=${session.user.id}, jwt_sub=${jwtContext['sub'] ?? '(unavailable)'}, jwt_role=${jwtContext['role'] ?? '(unavailable)'}, jwt_aud=${jwtContext['aud'] ?? '(unavailable)'}, jwt_expired=${jwtContext['expired'] ?? '(unavailable)'}, access_token_present=true (token not logged).',
-      );
-      final response = await client
-          .get(
-            uri,
-            headers: {
-              'apikey': publishableKey,
-              'Authorization': 'Bearer ${session.accessToken}',
-            },
-          )
-          .timeout(const Duration(seconds: 15));
-      final requestId =
-          response.headers['sb-request-id'] ??
-          response.headers['x-request-id'] ??
-          '(not returned)';
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        try {
-          final dimensions = await _validateImageBytes(response.bodyBytes);
-          debugPrint(
-            'Avatar raw HTTP diagnostic response: status=${response.statusCode}, request_id="$requestId", bytes=${response.bodyBytes.length}, decoded=${dimensions.$1}x${dimensions.$2}.',
-          );
-        } catch (error) {
-          debugPrint(
-            'Avatar raw HTTP diagnostic response: status=${response.statusCode}, request_id="$requestId", bytes=${response.bodyBytes.length}, image_decode_error=$error.',
-          );
-        }
-        return;
-      }
-
-      var error = 'unparsed response';
-      var code = 'unspecified';
-      var message = 'response body omitted';
-      try {
-        final body = jsonDecode(utf8.decode(response.bodyBytes));
-        if (body is Map<String, dynamic>) {
-          error = body['error']?.toString() ?? error;
-          code = body['code']?.toString() ?? code;
-          message = body['message']?.toString() ?? message;
-        }
-      } catch (_) {
-        message = 'non-JSON body (${response.bodyBytes.length} bytes)';
-      }
-      debugPrint(
-        'Avatar raw HTTP diagnostic response: http_status=${response.statusCode}, request_id="$requestId", error="$error", code="$code", message="$message".',
-      );
-    } catch (error) {
-      debugPrint('Avatar raw HTTP diagnostic request failed: $error.');
-    } finally {
-      client.close();
-    }
-  }
-
-  Map<String, Object?> _safeJwtContext(String accessToken) {
-    try {
-      final segments = accessToken.split('.');
-      if (segments.length < 2) return const {};
-      final payload = jsonDecode(
-        utf8.decode(base64Url.decode(base64Url.normalize(segments[1]))),
-      );
-      if (payload is! Map<String, dynamic>) return const {};
-      final expiry = payload['exp'];
-      return {
-        'sub': payload['sub'],
-        'role': payload['role'],
-        'aud': payload['aud'],
-        'expired': expiry is num
-            ? DateTime.now().millisecondsSinceEpoch ~/ 1000 >= expiry
-            : null,
-      };
-    } catch (_) {
-      return const {};
     }
   }
 

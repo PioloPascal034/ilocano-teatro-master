@@ -8,6 +8,8 @@ import 'data/curriculum_repository.dart';
 import 'models/curriculum_models.dart';
 import '../quiz/data/quiz_management_repository.dart';
 import '../quiz/teacher_quiz_management_screen.dart';
+import '../learning/lesson_article_body.dart';
+import 'lesson_editor_dialog.dart';
 
 class TeacherCurriculumScreen extends StatefulWidget {
   const TeacherCurriculumScreen({
@@ -332,31 +334,51 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
     CurriculumModule module, [
     CurriculumLesson? lesson,
   ]) async {
-    final saved = await showDialog<bool>(
+    var editingLessonId = lesson?.id;
+    var savedAny = false;
+    await showDialog<void>(
       context: context,
-      builder: (context) => _LessonFormDialog(
+      barrierDismissible: false,
+      builder: (context) => LessonEditorDialog(
         module: module,
         lesson: lesson,
-        onSave: (title, objectives, content) async {
-          if (lesson == null) {
-            await widget.repository.createLesson(
-              moduleId: module.id,
-              title: title,
-              objectives: objectives,
-              content: content,
-            );
-          } else {
-            await widget.repository.updateLesson(
-              lessonId: lesson.id,
-              title: title,
-              objectives: objectives,
-              content: content,
-            );
-          }
-        },
+        supportsMetadata: widget.repository.supportsLessonMetadata,
+        onSave:
+            (
+              title,
+              objectives,
+              content,
+              sections,
+              overview,
+              readingMinutes,
+            ) async {
+              if (editingLessonId == null) {
+                final created = await widget.repository.createLesson(
+                  moduleId: module.id,
+                  title: title,
+                  objectives: objectives,
+                  content: content,
+                  sections: sections,
+                  overview: overview,
+                  estimatedReadingMinutes: readingMinutes,
+                );
+                editingLessonId = created.id;
+              } else {
+                await widget.repository.updateLesson(
+                  lessonId: editingLessonId!,
+                  title: title,
+                  objectives: objectives,
+                  content: content,
+                  sections: sections,
+                  overview: overview,
+                  estimatedReadingMinutes: readingMinutes,
+                );
+              }
+              savedAny = true;
+            },
       ),
     );
-    if (saved == true && mounted) {
+    if (savedAny && mounted) {
       _refresh();
       _showMessage(
         lesson == null ? 'Lesson saved as unpublished.' : 'Lesson updated.',
@@ -718,75 +740,18 @@ class _LessonRow extends StatelessWidget {
 
 class _LessonPreview extends StatelessWidget {
   const _LessonPreview({required this.module, required this.lesson});
-
   final CurriculumModule module;
   final CurriculumLesson lesson;
 
   @override
-  Widget build(BuildContext context) {
-    final paragraphs = lesson.content
-        .split(RegExp(r'\r?\n\s*\r?\n'))
-        .map((text) => text.trim())
-        .where((text) => text.isNotEmpty)
-        .toList();
-    final objectives =
-        lesson.objectives
-            ?.split(RegExp(r'\r?\n|\s*;\s*'))
-            .map((line) => line.trim())
-            .where((line) => line.isNotEmpty)
-            .toList() ??
-        const <String>[];
-    return TeatroCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          TeatroEyebrow(
-            'LESSON PREVIEW · ${module.title.toUpperCase()}',
-            color: TeatroColors.rust,
-          ),
-          const SizedBox(height: 7),
-          Text(lesson.title, style: Theme.of(context).textTheme.displayMedium),
-          const SizedBox(height: 16),
-          if (objectives.isNotEmpty) ...[
-            Text(
-              'Learning objectives',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 7),
-            for (final objective in objectives)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 5),
-                child: Text(
-                  '•  $objective',
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ),
-            const SizedBox(height: 13),
-          ],
-          Text('Lesson content', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
-          if (paragraphs.isEmpty)
-            Text(
-              'No lesson content provided.',
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: TeatroColors.muted),
-            )
-          else
-            for (final paragraph in paragraphs)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: SelectableText(
-                  paragraph,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(height: 1.7),
-                ),
-              ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => TeatroCard(
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      TeatroEyebrow('LESSON PREVIEW · ${module.title}', color: TeatroColors.rust),
+      const SizedBox(height: 12),
+      LessonArticleBody(title: lesson.title, content: lesson.content,
+        sections: lesson.sections, objectives: lesson.objectives, overview: lesson.overview),
+    ]),
+  );
 }
 
 class _ModuleFormDialog extends StatefulWidget {
@@ -881,129 +846,6 @@ class _ModuleFormDialogState extends State<_ModuleFormDialog> {
   );
 }
 
-class _LessonFormDialog extends StatefulWidget {
-  const _LessonFormDialog({
-    required this.module,
-    required this.lesson,
-    required this.onSave,
-  });
-
-  final CurriculumModule module;
-  final CurriculumLesson? lesson;
-  final Future<void> Function(String title, String? objectives, String content)
-  onSave;
-
-  @override
-  State<_LessonFormDialog> createState() => _LessonFormDialogState();
-}
-
-class _LessonFormDialogState extends State<_LessonFormDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late final _title = TextEditingController(text: widget.lesson?.title ?? '');
-  late final _objectives = TextEditingController(
-    text: widget.lesson?.objectives ?? '',
-  );
-  late final _content = TextEditingController(
-    text: widget.lesson?.content ?? '',
-  );
-  bool _saving = false;
-  String? _error;
-
-  @override
-  void dispose() {
-    _title.dispose();
-    _objectives.dispose();
-    _content.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() {
-      _saving = true;
-      _error = null;
-    });
-    try {
-      await widget.onSave(_title.text, _objectives.text, _content.text);
-      if (mounted) Navigator.pop(context, true);
-    } catch (error) {
-      if (mounted) {
-        setState(() {
-          _saving = false;
-          _error = _errorText(error);
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.lesson == null ? 'Add lesson' : 'Edit lesson'),
-    content: SizedBox(
-      width: 620,
-      child: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TeatroEyebrow('MODULE · ${widget.module.title}'),
-              ),
-              TextFormField(
-                controller: _title,
-                autofocus: true,
-                decoration: const InputDecoration(labelText: 'Lesson title'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Enter a lesson title.'
-                    : null,
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _objectives,
-                minLines: 2,
-                maxLines: 4,
-                decoration: const InputDecoration(
-                  labelText: 'Learning objectives',
-                  hintText: 'Separate objectives with new lines or semicolons.',
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _content,
-                minLines: 8,
-                maxLines: 16,
-                keyboardType: TextInputType.multiline,
-                textInputAction: TextInputAction.newline,
-                decoration: const InputDecoration(
-                  alignLabelWithHint: true,
-                  labelText: 'Lesson content',
-                ),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Enter lesson content.'
-                    : null,
-              ),
-              if (_error != null) _FormError(_error!),
-              if (_saving) const LinearProgressIndicator(),
-            ],
-          ),
-        ),
-      ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: _saving ? null : () => Navigator.pop(context, false),
-        child: const Text('Cancel'),
-      ),
-      DesignPrimaryButton(
-        label: _saving ? 'Saving…' : 'Save lesson',
-        icon: Icons.save_outlined,
-        onPressed: _saving ? null : _save,
-      ),
-    ],
-  );
-}
 
 class _ReadOnlyNotice extends StatelessWidget {
   const _ReadOnlyNotice();

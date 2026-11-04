@@ -5,6 +5,7 @@ import '../../app/app_routes.dart';
 import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
 import '../../core/widgets/teatro_design_widgets.dart';
+import '../../core/storage/private_media_repository.dart';
 import 'data/story_vault_repository.dart';
 import 'models/story_models.dart';
 
@@ -135,12 +136,12 @@ class _StoryVaultScreenState extends State<StoryVaultScreen> {
               showCompletion: widget.role == AppRole.student,
             ),
             const SizedBox(height: 17),
-            if (stories.isEmpty)
+            if (stories.isEmpty) ...[
               _EmptyVault(
                 editor: snapshot.data!.editor,
                 onCreate: () => widget.onEditStory(null),
-              )
-            else if (visible.isEmpty)
+              ),
+            ] else if (visible.isEmpty)
               const TeatroEmptyState(
                 title: 'No stories match these filters',
                 description:
@@ -343,6 +344,8 @@ class _StoryCard extends StatelessWidget {
         StoryPrivateImage(
           repository: repository,
           storagePath: story.coverStoragePath,
+          mediaType: PrivateMediaType.storyCover,
+          recordId: story.id,
           altText: story.coverAltText,
           height: 150,
           fit: BoxFit.cover,
@@ -526,6 +529,8 @@ class _StoryOverviewScreenState extends State<StoryOverviewScreen> {
                 final cover = StoryPrivateImage(
                   repository: widget.repository,
                   storagePath: story.coverStoragePath,
+                  mediaType: PrivateMediaType.storyCover,
+                  recordId: story.id,
                   altText: story.coverAltText,
                   width: compact ? double.infinity : 260,
                   height: compact ? 210 : 260,
@@ -977,6 +982,8 @@ class _StoryChapterReaderScreenState extends State<StoryChapterReaderScreen> {
               StoryPrivateImage(
                 repository: widget.repository,
                 storagePath: chapter.illustrationStoragePath,
+                mediaType: PrivateMediaType.chapterIllustration,
+                recordId: chapter.id,
                 altText: chapter.illustrationAltText,
                 height: 250,
                 fit: BoxFit.contain,
@@ -1102,7 +1109,10 @@ class StoryPrivateImage extends StatefulWidget {
   const StoryPrivateImage({
     required this.repository,
     required this.storagePath,
+    required this.mediaType,
+    required this.recordId,
     required this.altText,
+    this.localBytes,
     this.height = 170,
     this.width,
     this.fit = BoxFit.cover,
@@ -1110,7 +1120,10 @@ class StoryPrivateImage extends StatefulWidget {
   });
   final StoryVaultRepository repository;
   final String? storagePath;
+  final PrivateMediaType mediaType;
+  final String recordId;
   final String? altText;
+  final Uint8List? localBytes;
   final double height;
   final double? width;
   final BoxFit fit;
@@ -1132,16 +1145,26 @@ class _StoryPrivateImageState extends State<StoryPrivateImage> {
   void didUpdateWidget(covariant StoryPrivateImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.storagePath != widget.storagePath ||
-        oldWidget.repository != widget.repository) {
+        oldWidget.repository != widget.repository ||
+        oldWidget.mediaType != widget.mediaType ||
+        oldWidget.recordId != widget.recordId ||
+        oldWidget.localBytes != widget.localBytes) {
       _load();
     }
   }
 
   void _load() {
     final path = widget.storagePath;
-    _future = path == null || path.isEmpty
+    final localBytes = widget.localBytes;
+    _future = localBytes != null
+        ? Future.value(localBytes)
+        : path == null || path.isEmpty
         ? null
-        : widget.repository.downloadImage(path);
+        : widget.repository.downloadImage(
+            type: widget.mediaType,
+            recordId: widget.recordId,
+            cacheVersion: path,
+          );
   }
 
   @override

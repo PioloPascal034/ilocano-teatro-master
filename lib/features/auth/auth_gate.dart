@@ -140,6 +140,13 @@ class _AuthGateState extends State<AuthGate> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 18),
+                  FilledButton(
+                    onPressed: () => _loadRole(
+                      Supabase.instance.client.auth.currentUser,
+                    ),
+                    child: const Text('Retry'),
+                  ),
+                  const SizedBox(height: 8),
                   TextButton(
                     onPressed: _signOut,
                     child: const Text('Sign out'),

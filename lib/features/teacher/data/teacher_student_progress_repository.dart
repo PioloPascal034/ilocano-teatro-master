@@ -6,6 +6,7 @@ class TeacherStudentProgress {
   const TeacherStudentProgress({
     required this.id,
     required this.fullName,
+    required this.avatarStoragePath,
     required this.completedLessons,
     required this.totalLessons,
     required this.quizAverage,
@@ -13,6 +14,7 @@ class TeacherStudentProgress {
 
   final String id;
   final String fullName;
+  final String? avatarStoragePath;
   final int completedLessons;
   final int totalLessons;
   final double? quizAverage;
@@ -73,7 +75,7 @@ class SupabaseTeacherStudentProgressRepository
 
     final profiles = await _client
         .from('profiles')
-        .select('id, full_name')
+        .select('id, full_name, avatar_storage_path')
         .inFilter('id', studentIds)
         .eq('role', 'student');
     final publishedModules = await _client
@@ -133,6 +135,7 @@ class SupabaseTeacherStudentProgressRepository
       return TeacherStudentProgress(
         id: id,
         fullName: (row['full_name'] as String? ?? '').trim(),
+        avatarStoragePath: row['avatar_storage_path'] as String?,
         completedLessons: (completedByStudent[id] ?? const <String>{}).length,
         totalLessons: lessonIds.length,
         quizAverage: average,
