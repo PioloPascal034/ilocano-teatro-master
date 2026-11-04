@@ -1,0 +1,675 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Strix",
+          "informationUri": "https://strix.ai",
+          "rules": [
+            {
+              "id": "strix-coverage/architecture-attack-surface-mapping",
+              "name": "Architecture / attack-surface mapping",
+              "shortDescription": {
+                "text": "Coverage: Architecture / attack-surface mapping"
+              },
+              "fullDescription": {
+                "text": "Coverage of Architecture / attack-surface mapping across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Architecture / attack-surface mapping across the assessed attack surface.",
+                "markdown": "Coverage of Architecture / attack-surface mapping across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/authentication-role-routing-and-entry-point-mapping",
+              "name": "Authentication, role routing, and entry-point mapping",
+              "shortDescription": {
+                "text": "Coverage: Authentication, role routing, and entry-point mapping"
+              },
+              "fullDescription": {
+                "text": "Coverage of Authentication, role routing, and entry-point mapping across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Authentication, role routing, and entry-point mapping across the assessed attack surface.",
+                "markdown": "Coverage of Authentication, role routing, and entry-point mapping across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/data-authorization-idor-privileged-rpc-mapping",
+              "name": "Data authorization / IDOR / privileged RPC mapping",
+              "shortDescription": {
+                "text": "Coverage: Data authorization / IDOR / privileged RPC mapping"
+              },
+              "fullDescription": {
+                "text": "Coverage of Data authorization / IDOR / privileged RPC mapping across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Data authorization / IDOR / privileged RPC mapping across the assessed attack surface.",
+                "markdown": "Coverage of Data authorization / IDOR / privileged RPC mapping across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/file-upload-private-object-authorization-path-handling-and-elevated-service-access",
+              "name": "File upload, private-object authorization, path handling, and elevated-service access",
+              "shortDescription": {
+                "text": "Coverage: File upload, private-object authorization, path handling, and elevated-service access"
+              },
+              "fullDescription": {
+                "text": "Coverage of File upload, private-object authorization, path handling, and elevated-service access across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of File upload, private-object authorization, path handling, and elevated-service access across the assessed attack surface.",
+                "markdown": "Coverage of File upload, private-object authorization, path handling, and elevated-service access across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/automated-sast-and-structural-source-mapping",
+              "name": "Automated SAST and structural source mapping",
+              "shortDescription": {
+                "text": "Coverage: Automated SAST and structural source mapping"
+              },
+              "fullDescription": {
+                "text": "Coverage of Automated SAST and structural source mapping across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Automated SAST and structural source mapping across the assessed attack surface.",
+                "markdown": "Coverage of Automated SAST and structural source mapping across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/hardcoded-credentials-secret-exposure",
+              "name": "Hardcoded credentials / secret exposure",
+              "shortDescription": {
+                "text": "Coverage: Hardcoded credentials / secret exposure"
+              },
+              "fullDescription": {
+                "text": "Coverage of Hardcoded credentials / secret exposure across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Hardcoded credentials / secret exposure across the assessed attack surface.",
+                "markdown": "Coverage of Hardcoded credentials / secret exposure across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/known-dependency-cves-and-configuration-misconfiguration",
+              "name": "Known dependency CVEs and configuration misconfiguration",
+              "shortDescription": {
+                "text": "Coverage: Known dependency CVEs and configuration misconfiguration"
+              },
+              "fullDescription": {
+                "text": "Coverage of Known dependency CVEs and configuration misconfiguration across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Known dependency CVEs and configuration misconfiguration across the assessed attack surface.",
+                "markdown": "Coverage of Known dependency CVEs and configuration misconfiguration across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/command-injection-xxe-path-traversal-and-ssrf-surface-mapping",
+              "name": "Command injection, XXE, path traversal, and SSRF surface mapping",
+              "shortDescription": {
+                "text": "Coverage: Command injection, XXE, path traversal, and SSRF surface mapping"
+              },
+              "fullDescription": {
+                "text": "Coverage of Command injection, XXE, path traversal, and SSRF surface mapping across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Command injection, XXE, path traversal, and SSRF surface mapping across the assessed attack surface.",
+                "markdown": "Coverage of Command injection, XXE, path traversal, and SSRF surface mapping across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/vertical-privilege-escalation",
+              "name": "Vertical privilege escalation",
+              "shortDescription": {
+                "text": "Coverage: Vertical privilege escalation"
+              },
+              "fullDescription": {
+                "text": "Coverage of Vertical privilege escalation across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Vertical privilege escalation across the assessed attack surface.",
+                "markdown": "Coverage of Vertical privilege escalation across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/unauthorized-relationship-creation-class-code-abuse",
+              "name": "Unauthorized relationship creation / class-code abuse",
+              "shortDescription": {
+                "text": "Coverage: Unauthorized relationship creation / class-code abuse"
+              },
+              "fullDescription": {
+                "text": "Coverage of Unauthorized relationship creation / class-code abuse across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Unauthorized relationship creation / class-code abuse across the assessed attack surface.",
+                "markdown": "Coverage of Unauthorized relationship creation / class-code abuse across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/assessment-confidentiality-and-score-integrity",
+              "name": "Assessment confidentiality and score integrity",
+              "shortDescription": {
+                "text": "Coverage: Assessment confidentiality and score integrity"
+              },
+              "fullDescription": {
+                "text": "Coverage of Assessment confidentiality and score integrity across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Assessment confidentiality and score integrity across the assessed attack surface.",
+                "markdown": "Coverage of Assessment confidentiality and score integrity across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/cross-student-idor-and-unauthorized-review-score-modification",
+              "name": "Cross-student IDOR and unauthorized review/score modification",
+              "shortDescription": {
+                "text": "Coverage: Cross-student IDOR and unauthorized review/score modification"
+              },
+              "fullDescription": {
+                "text": "Coverage of Cross-student IDOR and unauthorized review/score modification across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Cross-student IDOR and unauthorized review/score modification across the assessed attack surface.",
+                "markdown": "Coverage of Cross-student IDOR and unauthorized review/score modification across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            },
+            {
+              "id": "strix-coverage/privilege-boundary-bypass-through-elevated-sql-functions",
+              "name": "Privilege boundary bypass through elevated SQL functions",
+              "shortDescription": {
+                "text": "Coverage: Privilege boundary bypass through elevated SQL functions"
+              },
+              "fullDescription": {
+                "text": "Coverage of Privilege boundary bypass through elevated SQL functions across the assessed attack surface."
+              },
+              "defaultConfiguration": {
+                "level": "none"
+              },
+              "help": {
+                "text": "Coverage of Privilege boundary bypass through elevated SQL functions across the assessed attack surface.",
+                "markdown": "Coverage of Privilege boundary bypass through elevated SQL functions across the assessed attack surface."
+              },
+              "properties": {
+                "tags": [
+                  "coverage"
+                ]
+              }
+            }
+          ],
+          "version": "1.7.0"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "strix-coverage/architecture-attack-surface-mapping",
+          "ruleIndex": 0,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Architecture / attack-surface mapping — No issue identified: Repository-wide runtime and tooling boundary map\n\nMapped `lib/`, Supabase SQL/migrations and Edge Function, Android packaging, tests, diagnostics, docs/state, design-reference, and generated caches; recorded runtime vs non-runtime boundaries and authoritative Supabase trust boundary in the shared threat model and notes."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Repository-wide runtime and tooling boundary map"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "no_issue_found",
+              "risk_area": "Architecture / attack-surface mapping",
+              "surface": "Repository-wide runtime and tooling boundary map",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/authentication-role-routing-and-entry-point-mapping",
+          "ruleIndex": 1,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Authentication, role routing, and entry-point mapping — Ruled out: Flutter routes, AuthGate, AppShell, and feature modules\n\nClient-side route arguments can be forged, but every privileged backend path is independently enforced before the sink: profile roles are immutable to authenticated clients via column grants, editor/teacher checks bind to `auth.uid()`, and table/RPC mutations are constrained by RLS or role-checked SECURITY DEFINER functions. No route-only privilege escalation reaches protected data/state."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Flutter routes, AuthGate, AppShell, and feature modules"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "Authentication, role routing, and entry-point mapping",
+              "surface": "Flutter routes, AuthGate, AppShell, and feature modules",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/data-authorization-idor-privileged-rpc-mapping",
+          "ruleIndex": 2,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Data authorization / IDOR / privileged RPC mapping — No issue identified: Supabase schema, RLS policies, SECURITY DEFINER functions, and client repository call sites\n\nCompleted policy/function review: all 21 application tables have RLS, all 58 policies were traced, and every SECURITY DEFINER function has `search_path=''`, caller/role/relationship checks or trigger-only reachability, plus explicit public/anon revokes. Dart mutations/RPCs rely on these controls; no complete authorization bypass trace was found."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Supabase schema, RLS policies, SECURITY DEFINER functions, and client repository call sites"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "no_issue_found",
+              "risk_area": "Data authorization / IDOR / privileged RPC mapping",
+              "surface": "Supabase schema, RLS policies, SECURITY DEFINER functions, and client repository call sites",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/file-upload-private-object-authorization-path-handling-and-elevated-service-access",
+          "ruleIndex": 3,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "File upload, private-object authorization, path handling, and elevated-service access — Ruled out: Private media flow: file picker, validators, Supabase Storage policies, and get-private-media Edge Function\n\nStatic trace confirms private-media access is fail-closed: the Edge Function validates the bearer with `auth.getUser`, resolves records through the caller's RLS client, checks owner/assigned-teacher/editor/publication state, validates path shape, then uses the service key only for the already-authorized exact object. Storage policies independently bind bucket, operation, role/owner, record, and path."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Private media flow: file picker, validators, Supabase Storage policies, and get-private-media Edge Function"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "File upload, private-object authorization, path handling, and elevated-service access",
+              "surface": "Private media flow: file picker, validators, Supabase Storage policies, and get-private-media Edge Function",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/automated-sast-and-structural-source-mapping",
+          "ruleIndex": 4,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Automated SAST and structural source mapping — No issue identified: Scoped Semgrep and AST-grep structural pass over product source\n\nSemgrep scanned 78 runtime/config files with `p/default` and `p/secrets`, producing 0 findings and 0 engine errors. `sg-targets.txt` was derived from Semgrep `paths.scanned`, and a bounded `$F($$$ARGS)` AST-grep call-structure artifact was generated."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Scoped Semgrep and AST-grep structural pass over product source"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "no_issue_found",
+              "risk_area": "Automated SAST and structural source mapping",
+              "surface": "Scoped Semgrep and AST-grep structural pass over product source",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/hardcoded-credentials-secret-exposure",
+          "ruleIndex": 5,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Hardcoded credentials / secret exposure — Ruled out: Product source, manifests, lockfiles, and local configuration secrets scan\n\nThe credential-bearing add/delete commits are agent-host checkpoint commits reachable only from `refs/agents/<id>/checkpoints/*`; they are not ancestors of `HEAD` and no local branch, remote-tracking ref, or tag contains them. The current QA account file is untracked and ignored. Available Git metadata therefore rules out project/shared repository exposure despite the accounts being plausible hosted-Supabase QA accounts."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Product source, manifests, lockfiles, and local configuration secrets scan"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "Hardcoded credentials / secret exposure",
+              "surface": "Product source, manifests, lockfiles, and local configuration secrets scan",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/known-dependency-cves-and-configuration-misconfiguration",
+          "ruleIndex": 6,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Known dependency CVEs and configuration misconfiguration — No issue identified: Repository dependency lockfiles and configuration scanned with Trivy fs\n\nScoped `trivy fs --scanners vuln,misconfig --offline-scan` produced 2 result targets with 0 vulnerabilities and 0 misconfigurations; generated/cache directories were excluded."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Repository dependency lockfiles and configuration scanned with Trivy fs"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "no_issue_found",
+              "risk_area": "Known dependency CVEs and configuration misconfiguration",
+              "surface": "Repository dependency lockfiles and configuration scanned with Trivy fs",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/command-injection-xxe-path-traversal-and-ssrf-surface-mapping",
+          "ruleIndex": 7,
+          "kind": "notApplicable",
+          "level": "none",
+          "message": {
+            "text": "Command injection, XXE, path traversal, and SSRF surface mapping — Not applicable: Runtime Dart process, XML, filesystem, and outbound-request surfaces\n\nNo process/shell execution, XML parser, or native filesystem path sink was found in runtime Dart code. The only direct `http` call is in `private_media_repository.dart`, where the destination is derived from the operator-configured Supabase REST base URL plus a fixed Edge Function path; media file handling is tracked separately."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Runtime Dart process, XML, filesystem, and outbound-request surfaces"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "not_applicable",
+              "risk_area": "Command injection, XXE, path traversal, and SSRF surface mapping",
+              "surface": "Runtime Dart process, XML, filesystem, and outbound-request surfaces",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/vertical-privilege-escalation",
+          "ruleIndex": 8,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Vertical privilege escalation — Ruled out: Profile role integrity and curriculum-editor authorization\n\n`handle_new_user` creates profiles with default `student` role and ignores user-supplied role metadata; authenticated profile UPDATE is column-limited and excludes `role`. `curriculum_editors` has no client table grants, while `is_curriculum_editor()` requires both an admin-provisioned row and a current `teacher` profile for `auth.uid()`."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Profile role integrity and curriculum-editor authorization"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "Vertical privilege escalation",
+              "surface": "Profile role integrity and curriculum-editor authorization",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/unauthorized-relationship-creation-class-code-abuse",
+          "ruleIndex": 9,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Unauthorized relationship creation / class-code abuse — Ruled out: Class join-code RPCs and teacher_students assignment\n\nCode creation/retrieval/revocation requires `is_teacher()`, redemption requires an authenticated student and a 128-bit random unexpired/unrevoked code hash, and a unique `student_id` index plus exception rollback enforces one teacher per student under concurrency. Direct client writes to both code and assignment tables are unavailable."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Class join-code RPCs and teacher_students assignment"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "Unauthorized relationship creation / class-code abuse",
+              "surface": "Class join-code RPCs and teacher_students assignment",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/assessment-confidentiality-and-score-integrity",
+          "ruleIndex": 10,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Assessment confidentiality and score integrity — Ruled out: Quiz questions/options, attempts/answers, and editor RPCs\n\nLearner reads cascade through `questions_read`/`options_read` to published-only `quizzes_read`; column grants deny `explanation` and `is_correct`. Direct attempt/answer writes are revoked, `submit_quiz` requires a student and published quiz/module, validates every question/option, and computes/stores scores server-side. Editor writes and answer-key/reorder RPCs require `is_curriculum_editor()`."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Quiz questions/options, attempts/answers, and editor RPCs"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "Assessment confidentiality and score integrity",
+              "surface": "Quiz questions/options, attempts/answers, and editor RPCs",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/cross-student-idor-and-unauthorized-review-score-modification",
+          "ruleIndex": 11,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Cross-student IDOR and unauthorized review/score modification — Ruled out: Theme drafts, immutable submissions, reviews, and review_scores\n\nDraft ownership and teacher assignment are enforced by RLS and `can_review`; submissions and reviews are written only by `submit_theme`/`complete_review`, which check student ownership, teacher role, and assignment before writes. `scores_read` is constrained transitively by the referenced `reviews_read` RLS policy, so only the owning student or assigned teacher can resolve the required review row."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Theme drafts, immutable submissions, reviews, and review_scores"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "ruled_out",
+              "risk_area": "Cross-student IDOR and unauthorized review/score modification",
+              "surface": "Theme drafts, immutable submissions, reviews, and review_scores",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        },
+        {
+          "ruleId": "strix-coverage/privilege-boundary-bypass-through-elevated-sql-functions",
+          "ruleIndex": 12,
+          "kind": "pass",
+          "level": "none",
+          "message": {
+            "text": "Privilege boundary bypass through elevated SQL functions — No issue identified: All SECURITY DEFINER functions, triggers, EXECUTE grants, and table/column grants\n\nReviewed every SECURITY DEFINER declaration across bootstrap and migrations. Non-trigger RPCs bind access to `auth.uid()` through explicit authentication, role, ownership, editor, or assignment checks; trigger-only functions cannot be invoked as ordinary RPCs. Elevated functions set an empty search path and have explicit public/anon revokes; table grants are paired with RLS and sensitive columns such as `profiles.role` and `question_options.is_correct` are not client-writable/readable."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "All SECURITY DEFINER functions, triggers, EXECUTE grants, and table/column grants"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "strix": {
+              "coverage_outcome": "no_issue_found",
+              "risk_area": "Privilege boundary bypass through elevated SQL functions",
+              "surface": "All SECURITY DEFINER functions, triggers, EXECUTE grants, and table/column grants",
+              "recorded_by": "Repository Mapping Lead",
+              "source": "agent_reported"
+            }
+          }
+        }
+      ],
+      "invocations": [
+        {
+          "executionSuccessful": false,
+          "toolExecutionNotifications": [
+            {
+              "level": "warning",
+              "message": {
+                "text": "The scan ended with status 'stopped' rather than completing, so coverage reflects only the work finished before it stopped."
+              }
+            },
+            {
+              "level": "warning",
+              "message": {
+                "text": "10 agent(s) did not finish cleanly (Authentication Flow Reviewer, Historical Credential Validator, Historical Secret Exposure Reviewer, Private Media Edge Reviewer, Private Media Security Reviewer, Repository Mapping Lead, Root Agent, Supabase Authorization Auditor, Supabase Authorization Reviewer, Supabase RLS Static Reviewer); any surface they held is under-covered."
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

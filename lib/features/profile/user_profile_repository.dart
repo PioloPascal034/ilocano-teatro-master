@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/storage/private_media_repository.dart';
 import 'profile_avatar_validator.dart';
+import 'class_assignment.dart';
 import 'user_profile.dart';
 
 abstract interface class UserProfileRepository {
@@ -24,6 +25,16 @@ abstract interface class UserProfileRepository {
   Future<void> saveAvatarStoragePath(String? storagePath);
 
   Future<void> deleteAvatar(String storagePath);
+
+  Future<TeacherConnection?> loadTeacherConnection();
+
+  Future<ActiveClassCode?> loadActiveClassCode();
+
+  Future<ActiveClassCode> generateClassCode();
+
+  Future<void> revokeClassCode();
+
+  Future<TeacherConnection> joinClassCode(String code);
 }
 
 class SupabaseUserProfileRepository implements UserProfileRepository {
@@ -94,10 +105,11 @@ class SupabaseUserProfileRepository implements UserProfileRepository {
         cacheVersion: storagePath,
       );
       final dimensions = await _validateImageBytes(bytes);
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint(
           'Profile avatar decoded: ${dimensions.$1}x${dimensions.$2}.',
         );
+      }
       return profile.withAvatar(storagePath: storagePath, bytes: bytes);
     } catch (error, stackTrace) {
       if (kDebugMode) {
@@ -283,6 +295,80 @@ class SupabaseUserProfileRepository implements UserProfileRepository {
       rethrow;
     }
   }
+
+  @override
+  Future<TeacherConnection?> loadTeacherConnection() async {
+    _user;
+    final rows = await _client.rpc('get_my_teacher_connection');
+    if (rows is! List || rows.isEmpty) return null;
+    final row = Map<String, dynamic>.from(rows.first);
+    return TeacherConnection(
+      teacherId: row['teacher_id'] as String,
+      teacherName: row['teacher_name'] as String? ?? 'Teacher',
+    );
+  }
+
+  @override
+  Future<ActiveClassCode?> loadActiveClassCode() async {
+    _user;
+    final result = await _client.rpc('get_active_class_join_code');
+    if (result is! List || result.isEmpty) return null;
+    return _classCodeFromRow(Map<String, dynamic>.from(result.first));
+  }
+
+  @override
+  Future<ActiveClassCode> generateClassCode() async {
+    _user;
+    final result = await _client.rpc('create_class_join_code');
+    if (result is! List || result.isEmpty) {
+      throw const FormatException('The class code could not be created.');
+    }
+    return _classCodeFromRow(Map<String, dynamic>.from(result.first));
+  }
+
+  @override
+  Future<void> revokeClassCode() async {
+    _user;
+    await _client.rpc('revoke_class_join_code');
+  }
+
+  @override
+  Future<TeacherConnection> joinClassCode(String code) async {
+    _user;
+    try {
+      final result = await _client.rpc(
+        'join_class_code',
+        params: {'input_code': code},
+      );
+      if (result is! List || result.isEmpty) {
+        throw const FormatException('The class code could not be used.');
+      }
+      final row = Map<String, dynamic>.from(result.first);
+      return TeacherConnection(
+        teacherId: row['teacher_id'] as String,
+        teacherName: row['teacher_name'] as String? ?? 'Teacher',
+      );
+    } on PostgrestException catch (error) {
+      if (error.code == 'P0002' ||
+          error.message.contains('invalid, expired, or revoked')) {
+        throw StateError('That class code is invalid, expired, or revoked.');
+      }
+      if (error.code == '23505' ||
+          error.message.contains('already connected')) {
+        throw StateError(
+          'Your account is already connected to another teacher.',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  ActiveClassCode _classCodeFromRow(Map<String, dynamic> row) =>
+      ActiveClassCode(
+        id: row['class_code_id'] as String,
+        code: row['code'] as String,
+        expiresAt: DateTime.parse(row['expires_at'] as String).toUtc(),
+      );
 
   Future<(int, int)> _validateImageBytes(Uint8List bytes) async {
     final codec = await ui.instantiateImageCodec(bytes);

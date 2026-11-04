@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Flutter Android lesson verification",
+			"type": "shell",
+			"command": "flutter",
+			"args": [
+				"run",
+				"-d",
+				"2b1081b2",
+				"--dart-define-from-file=supabase.local.json",
+				"--no-pub"
+			],
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

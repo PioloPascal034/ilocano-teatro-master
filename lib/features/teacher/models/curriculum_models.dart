@@ -7,7 +7,10 @@ class CurriculumLesson {
     required this.content,
     required this.lessonOrder,
     required this.isPublished,
+    this.sections = const <String, String>{},
     this.needsContentReview = false,
+    this.overview = '',
+    this.estimatedReadingMinutes,
   });
 
   final String id;
@@ -17,7 +20,12 @@ class CurriculumLesson {
   final String content;
   final int lessonOrder;
   final bool isPublished;
+
+  /// Optional structured lesson sections. Empty means legacy plain text.
+  final Map<String, String> sections;
   final bool needsContentReview;
+  final String overview;
+  final int? estimatedReadingMinutes;
 }
 
 class CurriculumModule {

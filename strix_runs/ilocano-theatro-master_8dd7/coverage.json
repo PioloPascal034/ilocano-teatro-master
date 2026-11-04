@@ -1,0 +1,386 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-11-04 05:26:29 UTC",
+  "run_id": "ilocano-theatro-master_8dd7",
+  "run_name": "ilocano-theatro-master_8dd7",
+  "scope": {
+    "targets": [
+      {
+        "type": "local_code",
+        "details": {
+          "target_path": "C:\\Users\\markk\\Documents\\GitHub\\Theatro master\\ilocano_theatro_master\\ilocano-theatro-master",
+          "workspace_subdir": "ilocano-theatro-master"
+        },
+        "original": "C:\\Users\\markk\\Documents\\GitHub\\Theatro master\\ilocano_theatro_master\\ilocano-theatro-master"
+      }
+    ],
+    "scan_mode": "deep",
+    "scope_mode": "auto",
+    "diff_scope": {
+      "active": false,
+      "mode": "auto"
+    },
+    "instruction": "Perform a static security audit focusing on secure coding practices without generating active exploit payloads"
+  },
+  "summary": {
+    "surfaces_reviewed": 13,
+    "outcomes": {
+      "no_issue_found": 5,
+      "ruled_out": 7,
+      "not_applicable": 1
+    },
+    "findings_filed": 0,
+    "gaps": 10
+  },
+  "machine_observed": {
+    "agents": [
+      {
+        "agent_id": "872aeb8f",
+        "agent_name": "Authentication Flow Reviewer",
+        "status": "stopped",
+        "skills": [
+          "authentication_jwt"
+        ],
+        "task": "Statically review authentication, session, password reset, sign-up, role assignment, and account-state handling in `/workspace/ilocano-theatro-master`. Do not generate exploit payloads or contact live services. Read the shared threat model. Trace Flutter auth UI/repositories through Supabase Auth callbacks and database triggers/functions; verify redirect/deep-link handling, session transitions, email verification assumptions, profile/role creation, password-reset token handling, logout, and client-side trust. Record coverage and counterevidence. For any concrete candidate, spawn an independent static validator and then a reporting-with-fix child only if the validator establishes a complete reachable source→control→sink→impact trace.",
+        "is_root": false
+      },
+      {
+        "agent_id": "2aab4032",
+        "agent_name": "Historical Credential Validator",
+        "status": "stopped",
+        "skills": [
+          "information_disclosure",
+          "source_aware_sast"
+        ],
+        "task": "Statically validate the candidate historical secret exposure in `/workspace/ilocano-theatro-master`: commit `02cd4ee5cbc57b191eca38e79a2c7339218d0d0d` reportedly added `.qa-test-accounts.local.json` with student and teacher email/password pairs; later commit `77f2ff4d...` deleted it. Follow the user's constraint: **do not generate or execute active exploit payloads; do not attempt login or credential validity checks**. First read the shared threat model and relevant notes. Independently verify the exact Git objects/commits, whether the credentials are synthetic/documented/test-only versus plausible real accounts, whether the commit is reachable from current branches/tags/remotes, whether history rewriting or revocation evidence exists, and whether the affected Supabase project/environment is production, staging, or local. Run the strongest counterevidence pass. Close as ruled out, needs_follow_up, or confirmed static exposure. If a reportable source-trace exists, spawn a dedicated reporting child to file the finding with an appropriate remediation/fix plan; because the secret is historical, do not propose merely deleting the current file—address credential rotation and Git history remediation. Record coverage regardless of outcome. Return only redacted evidence; never disclose the actual credential values in messages/reports.",
+        "is_root": false
+      },
+      {
+        "agent_id": "20e44b4f",
+        "agent_name": "Historical Secret Exposure Reviewer",
+        "status": "stopped",
+        "skills": [
+          "information_disclosure",
+          "source_aware_sast"
+        ],
+        "task": "Static-only review of secret exposure in `/workspace/ilocano-theatro-master`. First call `get_threat_model` on the target. Current mapping found `.env`, `.qa-test-accounts.local.json`, and `supabase.local.json` are ignored now, but `git log --all --` shows history for these paths. Do not print or transmit secret values and do not contact any service or test credentials. Determine whether sensitive values (especially Supabase secret/service credentials or QA account passwords) were committed, whether they remain in reachable Git history, and whether product/runtime code embeds them. Use secret hashes/fingerprints or redacted evidence only. Record coverage. If a concrete reportable historical-secret issue is confirmed, spawn a nested static validator and then a reporting agent with an inline remediation/fix where applicable; confidence no higher than medium without credential-validity testing. Return file/commit metadata redacted, counterevidence, and open proof gaps.",
+        "is_root": false
+      },
+      {
+        "agent_id": "0eee244d",
+        "agent_name": "Private Media Edge Reviewer",
+        "status": "stopped",
+        "skills": [
+          "path_traversal_lfi_rfi"
+        ],
+        "task": "Review only private-media handling in `/workspace/ilocano-theatro-master` using static analysis; do not send requests or generate exploit payloads. Read the threat model and notes. Trace Flutter callers, the `supabase/functions/get-private-media/index.ts` Edge Function, storage bucket policies, signed URL generation, authorization/ownership checks, path handling, CORS, authentication, and response caching. Enumerate each distinct candidate with source→control→sink→impact evidence, run counterevidence, and record coverage. Spawn a dedicated static validator for any plausible vulnerability; confirmed candidates must flow to a reporting child that includes exact code locations and a minimal verified fix.",
+        "is_root": false
+      },
+      {
+        "agent_id": "5e79a035",
+        "agent_name": "Private Media Security Reviewer",
+        "status": "stopped",
+        "skills": [
+          "supabase",
+          "insecure_file_uploads",
+          "path_traversal_lfi_rfi"
+        ],
+        "task": "Static-only security review of `/workspace/ilocano-theatro-master` private media and file-handling boundary. First call `get_threat_model` on the target. Focus on `lib/core/storage/**`, avatar/story image validators and repositories, Supabase storage migrations/policies, object path construction, MIME/size checks, signed URLs, upload/update/delete/read authorization, and public/private bucket exposure. Do not generate or execute active exploit payloads and do not contact live services. Enumerate distinct candidate instances, trace Dart source→validation/control→Supabase storage sink→impact, and record coverage. If a concrete candidate exists, spawn a nested static validator and then a reporting agent that includes a concrete inline fix; confidence no higher than medium without runtime proof. Return exact files/lines and open proof gaps.",
+        "is_root": false
+      },
+      {
+        "agent_id": "872b22ef",
+        "agent_name": "Repository Mapping Lead",
+        "status": "stopped",
+        "skills": [
+          "source_aware_sast"
+        ],
+        "task": "Perform the mandatory white-box Phase 1 mapping for `/workspace/ilocano-theatro-master` under the user's constraint: **static security audit only; do not generate or execute active exploit payloads**. First call `get_threat_model` for this target; if absent, inspect the repository architecture, AGENTS.md instructions, runtime/product vs test/tooling boundaries, routes, auth/authz, data stores, external integrations, file/parser/command/outbound request surfaces, dependencies, and how the app is intended to run. Run the baseline source-aware bundle: Semgrep, a bounded AST structural pass derived from Semgrep scope, one secrets pass, and `trivy fs`; preserve concise artifacts. Establish and save the target-wide threat model with `save_threat_model`. Create shared notes for architecture/route/dependency inventories, record coverage for the mapping/scanning surfaces, and spawn narrowly focused child agents only for concrete high-risk components or candidate families discovered (static review/validation/reporting-with-fix; no active payloads). Static-only candidates may be reported only with a complete reachable source→control→sink→impact trace at confidence no higher than medium, after counterevidence, and reporting agents must include concrete inline fixes. Return the repo map, scanner summary, child work spawned, and open proof gaps.",
+        "is_root": false
+      },
+      {
+        "agent_id": "b7ce9a95",
+        "agent_name": "Root Agent",
+        "status": "running",
+        "skills": [],
+        "task": "\n\nLocal Codebases: - C:\\Users\\markk\\Documents\\GitHub\\Theatro master\\ilocano_theatro_master\\ilocano-theatro-master (available at: /workspace/ilocano-theatro-master; this is the user's real directory, mounted live and writable — .git/.agents/.codex are read-only)\n\nSpecial instructions: Perform a static security audit focusing on secure coding practices without generating active exploit payloads",
+        "is_root": true
+      },
+      {
+        "agent_id": "f6e8dba2",
+        "agent_name": "Supabase Authorization Auditor",
+        "status": "stopped",
+        "skills": [
+          "idor",
+          "broken_function_level_authorization",
+          "mass_assignment"
+        ],
+        "task": "Conduct a focused **static-only** secure-coding audit of Supabase authorization in `/workspace/ilocano-theatro-master`; do not generate exploit payloads or contact any live service. Reuse the saved threat model, notes `0c8012`/`4d7bbd`, and existing `/workspace/.source-aware-ilocano/` artifacts rather than rerunning baseline scans. Inspect every application-table RLS policy and every relevant `SECURITY DEFINER`/RPC/grant path against all client repository operations. Prioritize profile-role integrity, teacher/student relationships, curriculum-editor privileges, quiz/answer exposure, submission/review isolation, notifications, class join-code creation/revocation/use, and write-time ownership/role checks. Treat the Flutter UI and route roles as attacker-bypassable. Enumerate distinct source→control→sink→impact candidates, include safe negative controls, and record coverage per surface/risk. If any candidate is plausible, you must spawn one narrow independent static validator for that candidate; validated issues then flow to a dedicated reporting child that files a complete report with exact line-based fixes and confidence no higher than medium. Return detailed clean controls and open proof gaps even if no issues are confirmed.",
+        "is_root": false
+      },
+      {
+        "agent_id": "d9854ca9",
+        "agent_name": "Supabase Authorization Reviewer",
+        "status": "stopped",
+        "skills": [
+          "supabase",
+          "idor",
+          "broken_function_level_authorization"
+        ],
+        "task": "Static-only security review of `/workspace/ilocano-theatro-master` Supabase authorization model. First call `get_threat_model` on `/workspace/ilocano-theatro-master` (it may appear shortly; if absent, proceed from source and amend later). Focus only on SQL schema/migrations and Dart repository call sites for RLS, IDOR/BOLA, role escalation, SECURITY DEFINER RPC authorization, teacher/student/curriculum-editor boundaries, and class join-code flows. Do not generate or execute active exploit payloads and do not contact live services. Enumerate each candidate source→control→sink→impact trace separately and record coverage. If a concrete candidate is found, follow the required nested static validation → reporting-with-inline-fix workflow; confidence no higher than medium without runtime proof. Report back with confirmed/rule-out/open-gap details and exact files/lines.",
+        "is_root": false
+      },
+      {
+        "agent_id": "0e5e0a0f",
+        "agent_name": "Supabase RLS Static Reviewer",
+        "status": "stopped",
+        "skills": [
+          "idor"
+        ],
+        "task": "Review only Supabase authorization controls in `/workspace/ilocano-theatro-master` under a strict static-only constraint: no active requests and no exploit payload generation. Read the shared threat model and route/data note. Inspect SQL bootstrap/migrations, RLS policies, `SECURITY DEFINER` functions, grants, JWT/profile role derivation, storage policies, and every Flutter repository call for cross-user/cross-role authorization gaps. Treat all client-side role checks as untrusted. Enumerate concrete source→missing/broken control→data/action traces, run counterevidence, and record coverage. For each plausible distinct candidate, spawn a narrow independent static validator; if confirmed, that validator should spawn a reporting child that files the report with exact code locations and verified minimal fixes. Do not report scanner-only patterns or unverified hypotheses.",
+        "is_root": false
+      }
+    ],
+    "skills_exercised": [
+      "authentication_jwt",
+      "broken_function_level_authorization",
+      "idor",
+      "information_disclosure",
+      "insecure_file_uploads",
+      "mass_assignment",
+      "path_traversal_lfi_rfi",
+      "source_aware_sast",
+      "supabase"
+    ],
+    "findings_filed": 0,
+    "source": "runtime"
+  },
+  "completeness": {
+    "complete": false,
+    "scan_status": "stopped",
+    "exit_reason": null,
+    "caveats": [
+      "The scan ended with status 'stopped' rather than completing, so coverage reflects only the work finished before it stopped.",
+      "10 agent(s) did not finish cleanly (Authentication Flow Reviewer, Historical Credential Validator, Historical Secret Exposure Reviewer, Private Media Edge Reviewer, Private Media Security Reviewer, Repository Mapping Lead, Root Agent, Supabase Authorization Auditor, Supabase Authorization Reviewer, Supabase RLS Static Reviewer); any surface they held is under-covered."
+    ]
+  },
+  "entries": [
+    {
+      "surface": "Repository-wide runtime and tooling boundary map",
+      "risk_area": "Architecture / attack-surface mapping",
+      "outcome": "no_issue_found",
+      "outcome_label": "No issue identified",
+      "evidence": "Mapped `lib/`, Supabase SQL/migrations and Edge Function, Android packaging, tests, diagnostics, docs/state, design-reference, and generated caches; recorded runtime vs non-runtime boundaries and authoritative Supabase trust boundary in the shared threat model and notes.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 04:39:49 UTC",
+      "updated_at": "",
+      "previous_outcomes": [],
+      "source": "agent_reported"
+    },
+    {
+      "surface": "Flutter routes, AuthGate, AppShell, and feature modules",
+      "risk_area": "Authentication, role routing, and entry-point mapping",
+      "outcome": "ruled_out",
+      "outcome_label": "Ruled out",
+      "evidence": "Client-side route arguments can be forged, but every privileged backend path is independently enforced before the sink: profile roles are immutable to authenticated clients via column grants, editor/teacher checks bind to `auth.uid()`, and table/RPC mutations are constrained by RLS or role-checked SECURITY DEFINER functions. No route-only privilege escalation reaches protected data/state.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 04:39:56 UTC",
+      "updated_at": "2026-11-04 05:01:43 UTC",
+      "previous_outcomes": [
+        "needs_follow_up"
+      ],
+      "source": "agent_reported"
+    },
+    {
+      "surface": "Supabase schema, RLS policies, SECURITY DEFINER functions, and client repository call sites",
+      "risk_area": "Data authorization / IDOR / privileged RPC mapping",
+      "outcome": "no_issue_found",
+      "outcome_label": "No issue identified",
+      "evidence": "Completed policy/function review: all 21 application tables have RLS, all 58 policies were traced, and every SECURITY DEFINER function has `search_path=''`, caller/role/relationship checks or trigger-only reachability, plus explicit public/anon revokes. Dart mutations/RPCs rely on these controls; no complete authorization bypass trace was found.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 04:40:04 UTC",
+      "updated_at": "2026-11-04 05:01:35 UTC",
+      "previous_outcomes": [
+        "needs_follow_up"
+      ],
+      "source": "agent_reported"
+    },
+    {
+      "surface": "Private media flow: file picker, validators, Supabase Storage policies, and get-private-media Edge Function",
+      "risk_area": "File upload, private-object authorization, path handling, and elevated-service access",
+      "outcome": "ruled_out",
+      "outcome_label": "Ruled out",
+      "evidence": "Static trace confirms private-media access is fail-closed: the Edge Function validates the bearer with `auth.getUser`, resolves records through the caller's RLS client, checks owner/assigned-teacher/editor/publication state, validates path shape, then uses the service key only for the already-authorized exact object. Storage policies independently bind bucket, operation, role/owner, record, and path.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 04:40:11 UTC",
+      "updated_at": "2026-11-04 05:01:53 UTC",
+      "previous_outcomes": [
+        "needs_follow_up"
+      ],
+      "source": "agent_reported"
+    },
+    {
+      "surface": "Scoped Semgrep and AST-grep structural pass over product source",
+      "risk_area": "Automated SAST and structural source mapping",
+      "outcome": "no_issue_found",
+      "outcome_label": "No issue identified",
+      "evidence": "Semgrep scanned 78 runtime/config files with `p/default` and `p/secrets`, producing 0 findings and 0 engine errors. `sg-targets.txt` was derived from Semgrep `paths.scanned`, and a bounded `$F($$$ARGS)` AST-grep call-structure artifact was generated.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 04:40:16 UTC",
+      "updated_at": "",
+      "previous_outcomes": [],
+      "source": "agent_reported"
+    },
+    {
+      "surface": "Product source, manifests, lockfiles, and local configuration secrets scan",
+      "risk_area": "Hardcoded credentials / secret exposure",
+      "outcome": "ruled_out",
+      "outcome_label": "Ruled out",
+      "evidence": "The credential-bearing add/delete commits are agent-host checkpoint commits reachable only from `refs/agents/<id>/checkpoints/*`; they are not ancestors of `HEAD` and no local branch, remote-tracking ref, or tag contains them. The current QA account file is untracked and ignored. Available Git metadata therefore rules out project/shared repository exposure despite the accounts being plausible hosted-Supabase QA accounts.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 04:41:48 UTC",
+      "updated_at": "2026-11-04 05:05:47 UTC",
+      "previous_outcomes": [
+        "needs_follow_up",
+        "needs_follow_up"
+      ],
+      "source": "agent_reported"
+    },
+    {
+      "surface": "Repository dependency lockfiles and configuration scanned with Trivy fs",
+      "risk_area": "Known dependency CVEs and configuration misconfiguration",
+      "outcome": "no_issue_found",
+      "outcome_label": "No issue identified",
+      "evidence": "Scoped `trivy fs --scanners vuln,misconfig --offline-scan` produced 2 result targets with 0 vulnerabilities and 0 misconfigurations; generated/cache directories were excluded.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 04:41:53 UTC",
+      "updated_at": "",
+      "previous_outcomes": [],
+      "source": "agent_reported"
+    },
+    {
+      "surface": "Runtime Dart process, XML, filesystem, and outbound-request surfaces",
+      "risk_area": "Command injection, XXE, path traversal, and SSRF surface mapping",
+      "outcome": "not_applicable",
+      "outcome_label": "Not applicable",
+      "evidence": "No process/shell execution, XML parser, or native filesystem path sink was found in runtime Dart code. The only direct `http` call is in `private_media_repository.dart`, where the destination is derived from the operator-configured Supabase REST base URL plus a fixed Edge Function path; media file handling is tracked separately.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 04:45:08 UTC",
+      "updated_at": "",
+      "previous_outcomes": [],
+      "source": "agent_reported"
+    },
+    {
+      "surface": "Profile role integrity and curriculum-editor authorization",
+      "risk_area": "Vertical privilege escalation",
+      "outcome": "ruled_out",
+      "outcome_label": "Ruled out",
+      "evidence": "`handle_new_user` creates profiles with default `student` role and ignores user-supplied role metadata; authenticated profile UPDATE is column-limited and excludes `role`. `curriculum_editors` has no client table grants, while `is_curriculum_editor()` requires both an admin-provisioned row and a current `teacher` profile for `auth.uid()`.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 05:02:05 UTC",
+      "updated_at": "",
+      "previous_outcomes": [],
+      "source": "agent_reported"
+    },
+    {
+      "surface": "Class join-code RPCs and teacher_students assignment",
+      "risk_area": "Unauthorized relationship creation / class-code abuse",
+      "outcome": "ruled_out",
+      "outcome_label": "Ruled out",
+      "evidence": "Code creation/retrieval/revocation requires `is_teacher()`, redemption requires an authenticated student and a 128-bit random unexpired/unrevoked code hash, and a unique `student_id` index plus exception rollback enforces one teacher per student under concurrency. Direct client writes to both code and assignment tables are unavailable.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 05:02:12 UTC",
+      "updated_at": "",
+      "previous_outcomes": [],
+      "source": "agent_reported"
+    },
+    {
+      "surface": "Quiz questions/options, attempts/answers, and editor RPCs",
+      "risk_area": "Assessment confidentiality and score integrity",
+      "outcome": "ruled_out",
+      "outcome_label": "Ruled out",
+      "evidence": "Learner reads cascade through `questions_read`/`options_read` to published-only `quizzes_read`; column grants deny `explanation` and `is_correct`. Direct attempt/answer writes are revoked, `submit_quiz` requires a student and published quiz/module, validates every question/option, and computes/stores scores server-side. Editor writes and answer-key/reorder RPCs require `is_curriculum_editor()`.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 05:02:19 UTC",
+      "updated_at": "",
+      "previous_outcomes": [],
+      "source": "agent_reported"
+    },
+    {
+      "surface": "Theme drafts, immutable submissions, reviews, and review_scores",
+      "risk_area": "Cross-student IDOR and unauthorized review/score modification",
+      "outcome": "ruled_out",
+      "outcome_label": "Ruled out",
+      "evidence": "Draft ownership and teacher assignment are enforced by RLS and `can_review`; submissions and reviews are written only by `submit_theme`/`complete_review`, which check student ownership, teacher role, and assignment before writes. `scores_read` is constrained transitively by the referenced `reviews_read` RLS policy, so only the owning student or assigned teacher can resolve the required review row.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 05:02:27 UTC",
+      "updated_at": "",
+      "previous_outcomes": [],
+      "source": "agent_reported"
+    },
+    {
+      "surface": "All SECURITY DEFINER functions, triggers, EXECUTE grants, and table/column grants",
+      "risk_area": "Privilege boundary bypass through elevated SQL functions",
+      "outcome": "no_issue_found",
+      "outcome_label": "No issue identified",
+      "evidence": "Reviewed every SECURITY DEFINER declaration across bootstrap and migrations. Non-trigger RPCs bind access to `auth.uid()` through explicit authentication, role, ownership, editor, or assignment checks; trigger-only functions cannot be invoked as ordinary RPCs. Elevated functions set an empty search path and have explicit public/anon revokes; table grants are paired with RLS and sensitive columns such as `profiles.role` and `question_options.is_correct` are not client-writable/readable.",
+      "recorded_by": "Repository Mapping Lead",
+      "recorded_at": "2026-11-04 05:02:36 UTC",
+      "updated_at": "",
+      "previous_outcomes": [],
+      "source": "agent_reported"
+    }
+  ],
+  "gaps": [
+    {
+      "kind": "unrecorded_risk_class",
+      "risk_area": "information disclosure",
+      "detail": "Agent(s) Historical Credential Validator, Historical Secret Exposure Reviewer were assigned the 'information_disclosure' skill, but no coverage entry records this class being assessed. Treat it as unexamined, not as clean."
+    },
+    {
+      "kind": "unrecorded_risk_class",
+      "risk_area": "mass assignment",
+      "detail": "Agent(s) Supabase Authorization Auditor were assigned the 'mass_assignment' skill, but no coverage entry records this class being assessed. Treat it as unexamined, not as clean."
+    },
+    {
+      "kind": "agent_recorded_no_coverage",
+      "agent_name": "Authentication Flow Reviewer",
+      "detail": "Authentication Flow Reviewer ran (status: stopped) without recording any coverage. Whatever it examined is absent from this record."
+    },
+    {
+      "kind": "agent_recorded_no_coverage",
+      "agent_name": "Historical Credential Validator",
+      "detail": "Historical Credential Validator ran (status: stopped) without recording any coverage. Whatever it examined is absent from this record."
+    },
+    {
+      "kind": "agent_recorded_no_coverage",
+      "agent_name": "Historical Secret Exposure Reviewer",
+      "detail": "Historical Secret Exposure Reviewer ran (status: stopped) without recording any coverage. Whatever it examined is absent from this record."
+    },
+    {
+      "kind": "agent_recorded_no_coverage",
+      "agent_name": "Private Media Edge Reviewer",
+      "detail": "Private Media Edge Reviewer ran (status: stopped) without recording any coverage. Whatever it examined is absent from this record."
+    },
+    {
+      "kind": "agent_recorded_no_coverage",
+      "agent_name": "Private Media Security Reviewer",
+      "detail": "Private Media Security Reviewer ran (status: stopped) without recording any coverage. Whatever it examined is absent from this record."
+    },
+    {
+      "kind": "agent_recorded_no_coverage",
+      "agent_name": "Supabase Authorization Auditor",
+      "detail": "Supabase Authorization Auditor ran (status: stopped) without recording any coverage. Whatever it examined is absent from this record."
+    },
+    {
+      "kind": "agent_recorded_no_coverage",
+      "agent_name": "Supabase Authorization Reviewer",
+      "detail": "Supabase Authorization Reviewer ran (status: stopped) without recording any coverage. Whatever it examined is absent from this record."
+    },
+    {
+      "kind": "agent_recorded_no_coverage",
+      "agent_name": "Supabase RLS Static Reviewer",
+      "detail": "Supabase RLS Static Reviewer ran (status: stopped) without recording any coverage. Whatever it examined is absent from this record."
+    }
+  ]
+}

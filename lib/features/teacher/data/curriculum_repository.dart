@@ -1,9 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../learning/models/learning_models.dart';
+import '../../learning/data/lesson_schema.dart';
 import '../models/curriculum_models.dart';
 
 abstract interface class CurriculumRepository {
+  bool get supportsLessonMetadata;
   Future<bool> isCurriculumEditor();
 
   Future<List<CurriculumModule>> loadModules();
@@ -29,6 +31,9 @@ abstract interface class CurriculumRepository {
     required String title,
     required String? objectives,
     required String content,
+    Map<String, String> sections = const <String, String>{},
+    String overview = '',
+    int? estimatedReadingMinutes,
   });
 
   Future<void> updateLesson({
@@ -36,6 +41,9 @@ abstract interface class CurriculumRepository {
     required String title,
     required String? objectives,
     required String content,
+    Map<String, String> sections = const <String, String>{},
+    String overview = '',
+    int? estimatedReadingMinutes,
   });
 
   Future<void> setLessonPublished({
@@ -54,6 +62,10 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     : _client = client ?? Supabase.instance.client;
 
   final SupabaseClient _client;
+  bool _hasMetadata = false;
+
+  @override
+  bool get supportsLessonMetadata => _hasMetadata;
 
   void _requireSession() {
     if (_client.auth.currentUser == null) {
@@ -92,12 +104,9 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
         .from('learning_modules')
         .select('module_id, title, description, display_order, is_published')
         .order('display_order');
-    final queriedLessonRows = await _client
-        .from('lessons')
-        .select(
-          'lesson_id, module_id, title, objectives, content, lesson_order, is_published',
-        )
-        .order('lesson_order');
+    final loaded = await loadLessonRows(_client);
+    _hasMetadata = loaded.hasMetadata;
+    final queriedLessonRows = loaded.rows;
     final lessonRows = queriedLessonRows.where((row) {
       final placeholder = isSeedPlaceholderLesson(row['content'] as String?);
       return editor || !placeholder;
@@ -121,6 +130,10 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
         title: row['title'] as String? ?? '',
         objectives: row['objectives'] as String?,
         content: row['content'] as String? ?? '',
+        sections: _sectionsFromRow(row['sections']),
+        overview: row['overview'] as String? ?? '',
+        estimatedReadingMinutes: (row['estimated_reading_minutes'] as num?)
+            ?.toInt(),
         lessonOrder: (row['lesson_order'] as num?)?.toInt() ?? 0,
         isPublished: row['is_published'] as bool? ?? false,
         needsContentReview: isSeedPlaceholderLesson(row['content'] as String?),
@@ -224,6 +237,9 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     required String title,
     required String? objectives,
     required String content,
+    Map<String, String> sections = const <String, String>{},
+    String overview = '',
+    int? estimatedReadingMinutes,
   }) async {
     await _requireEditor();
     final rows = await _client
@@ -242,11 +258,15 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
           'title': title.trim(),
           'objectives': _emptyToNull(objectives),
           'content': content.trim(),
+          'sections': sections.isEmpty ? null : sections,
+          ..._metadataPayload(overview, estimatedReadingMinutes),
           'lesson_order': lessonOrder,
           'is_published': false,
         })
         .select(
-          'lesson_id, module_id, title, objectives, content, lesson_order, is_published',
+          _hasMetadata
+              ? '$lessonBaseColumns,$lessonMetadataColumns'
+              : lessonBaseColumns,
         )
         .single();
     return _lessonFromRow(row);
@@ -258,6 +278,9 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     required String title,
     required String? objectives,
     required String content,
+    Map<String, String> sections = const <String, String>{},
+    String overview = '',
+    int? estimatedReadingMinutes,
   }) async {
     await _requireEditor();
     final rows = await _client
@@ -266,6 +289,8 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
           'title': title.trim(),
           'objectives': _emptyToNull(objectives),
           'content': content.trim(),
+          'sections': sections.isEmpty ? null : sections,
+          ..._metadataPayload(overview, estimatedReadingMinutes),
         })
         .eq('lesson_id', lessonId)
         .select('lesson_id');
@@ -319,6 +344,10 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
     title: row['title'] as String? ?? '',
     objectives: row['objectives'] as String?,
     content: row['content'] as String? ?? '',
+    sections: _sectionsFromRow(row['sections']),
+    overview: row['overview'] as String? ?? '',
+    estimatedReadingMinutes: (row['estimated_reading_minutes'] as num?)
+        ?.toInt(),
     lessonOrder: (row['lesson_order'] as num?)?.toInt() ?? 0,
     isPublished: row['is_published'] as bool? ?? false,
   );
@@ -326,5 +355,27 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
   String? _emptyToNull(String? value) {
     final trimmed = value?.trim() ?? '';
     return trimmed.isEmpty ? null : trimmed;
+  }
+
+  Map<String, dynamic> _metadataPayload(String overview, int? minutes) {
+    if (!_hasMetadata) {
+      if (overview.trim().isNotEmpty) {
+        throw StateError(
+          'Lesson overviews are not available yet. Your edits have not been saved.',
+        );
+      }
+      return const {};
+    }
+    return {
+      'overview': _emptyToNull(overview),
+      'estimated_reading_minutes': minutes,
+    };
+  }
+
+  Map<String, String> _sectionsFromRow(Object? raw) {
+    if (raw is! Map) return const <String, String>{};
+    return Map.unmodifiable(
+      raw.map((key, value) => MapEntry('$key', '$value')),
+    );
   }
 }

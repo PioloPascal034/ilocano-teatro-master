@@ -6,6 +6,7 @@ import '../../core/widgets/teatro_widgets.dart';
 import '../../core/widgets/teatro_design_widgets.dart';
 import 'data/student_learning_repository.dart';
 import 'models/learning_models.dart';
+import 'lesson_article_body.dart';
 
 class StudentLearningScreen extends StatefulWidget {
   const StudentLearningScreen({
@@ -652,12 +653,6 @@ class _LessonArticle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lesson = data.lesson;
-    final objectives = _objectives(lesson.objectives);
-    final paragraphs = lesson.content
-        .split(RegExp(r'\r?\n\s*\r?\n'))
-        .map((text) => text.trim())
-        .where((text) => text.isNotEmpty)
-        .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -692,47 +687,8 @@ class _LessonArticle extends StatelessWidget {
           color: TeatroColors.rust,
         ),
         const SizedBox(height: 6),
-        Text(lesson.title, style: Theme.of(context).textTheme.displayMedium),
-        const SizedBox(height: 10),
-        if (objectives.isNotEmpty) ...[
-          TeatroCard(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Learning objectives',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                for (final objective in objectives) _LessonObjective(objective),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-        ],
-        Text(
-          'Lesson content',
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(height: 8),
-        if (paragraphs.isEmpty)
-          const TeatroEmptyState(
-            title: 'Content not available yet',
-            description: 'Your teacher has not added content for this lesson.',
-            icon: Icons.menu_book_outlined,
-          )
-        else
-          for (final paragraph in paragraphs)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: SelectableText(
-                paragraph,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(height: 1.75),
-              ),
-            ),
+        LessonArticleBody(title: lesson.title, content: lesson.content,
+          sections: lesson.sections, objectives: lesson.objectives, overview: lesson.overview),
         if (completionError != null) ...[
           const SizedBox(height: 8),
           _InlineWarning(message: 'Completion was not saved: $completionError'),
@@ -787,34 +743,6 @@ class _LessonArticle extends StatelessWidget {
     );
   }
 
-  List<String> _objectives(String? raw) {
-    final text = raw?.trim() ?? '';
-    if (text.isEmpty) return const [];
-    return text
-        .split(RegExp(r'\r?\n|\s*;\s*'))
-        .map((line) => line.replaceFirst(RegExp(r'^[\s•\-]+'), '').trim())
-        .where((line) => line.isNotEmpty)
-        .toList();
-  }
-}
-
-class _LessonObjective extends StatelessWidget {
-  const _LessonObjective(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: 4),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('•  '),
-        Expanded(
-          child: Text(text, style: Theme.of(context).textTheme.bodySmall),
-        ),
-      ],
-    ),
-  );
 }
 
 class _LearningModuleCard extends StatelessWidget {

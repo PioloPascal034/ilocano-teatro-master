@@ -37,6 +37,10 @@ Future<void> _tap(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
   await tester.tap(target);
   await tester.pumpAndSettle();
+  if (label == 'Save lesson' && find.text('Done').evaluate().isNotEmpty) {
+    await tester.tap(find.text('Done'));
+    await tester.pumpAndSettle();
+  }
 }
 
 void main() {
@@ -121,10 +125,20 @@ void main() {
     await _pump(tester, repository);
     await _tap(tester, 'Manage lessons');
     await _tap(tester, 'Add lesson');
-    await tester.enterText(find.byType(TextFormField).at(0), 'New lesson');
-    await tester.enterText(find.byType(TextFormField).at(1), 'New objective');
     await tester.enterText(
-      find.byType(TextFormField).at(2),
+      find.byKey(const ValueKey('lesson-introduction')),
+      'Lesson introduction.',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-title')),
+      'New lesson',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-objectives')),
+      'New objective',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-discussion')),
       'New lesson body.',
     );
     await _tap(tester, 'Save lesson');
@@ -133,6 +147,87 @@ void main() {
     expect(lesson.title, 'New lesson');
     expect(lesson.content, 'New lesson body.');
     expect(lesson.isPublished, isFalse);
+  });
+
+  testWidgets('saving twice updates the same newly created draft', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = FakeCurriculumRepository();
+    await _pump(tester, repository);
+    await _tap(tester, 'Manage lessons');
+    final originalCount = repository.modules.first.lessons.length;
+    await _tap(tester, 'Add lesson');
+    await tester.enterText(find.byKey(const ValueKey('lesson-title')), 'Draft');
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-introduction')),
+      'Introduction',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-discussion')),
+      'Discussion',
+    );
+    await tester.tap(find.text('Save lesson'));
+    await tester.pumpAndSettle();
+    final id = repository.modules.first.lessons.last.id;
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-title')),
+      'Revised draft',
+    );
+    await tester.tap(find.text('Save lesson'));
+    await tester.pumpAndSettle();
+    expect(repository.modules.first.lessons.length, originalCount + 1);
+    expect(repository.modules.first.lessons.last.id, id);
+    expect(repository.modules.first.lessons.last.title, 'Revised draft');
+    expect(repository.modules.first.lessons.last.isPublished, isFalse);
+  });
+
+  testWidgets('structured lesson sections are saved for preview rendering', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = FakeCurriculumRepository();
+    await _pump(tester, repository);
+    await _tap(tester, 'Manage lessons');
+    await _tap(tester, 'Add lesson');
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-introduction')),
+      'Lesson introduction.',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-title')),
+      'Structured lesson',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-discussion')),
+      'Dialogue:\n[Aside]',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-introduction')),
+      '## Introduction\n*Context*',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-examples')),
+      '- Example line',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-summary')),
+      '> Remember the rhythm.',
+    );
+    await _tap(tester, 'Save lesson');
+
+    final lesson = repository.modules.first.lessons.last;
+    expect(lesson.sections['introduction'], contains('Context'));
+    expect(lesson.sections['examples'], contains('Example line'));
+    expect(lesson.sections['summary'], contains('rhythm'));
+    final previews = find.text('Preview');
+    await tester.ensureVisible(previews.last);
+    await tester.tap(previews.last);
+    await tester.pumpAndSettle();
+    expect(find.text('Introduction'), findsWidgets);
+    expect(find.textContaining('Context'), findsOneWidget);
   });
 
   testWidgets(
@@ -146,9 +241,16 @@ void main() {
       await _pump(tester, repository);
       await _tap(tester, 'Manage lessons');
       await _tap(tester, 'Add lesson');
-      await tester.enterText(find.byType(TextFormField).at(0), 'A new lesson');
       await tester.enterText(
-        find.byType(TextFormField).at(2),
+        find.byKey(const ValueKey('lesson-introduction')),
+        'Lesson introduction.',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('lesson-title')),
+        'A new lesson',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('lesson-discussion')),
         'Source-backed text',
       );
       await _tap(tester, 'Save lesson');
@@ -223,10 +325,16 @@ void main() {
     await _pump(tester, repository);
     await _tap(tester, 'Manage lessons');
     await _tap(tester, 'Edit');
-    await tester.enterText(find.byType(TextFormField).at(0), 'Edited lesson');
-    await tester.enterText(find.byType(TextFormField).at(1), 'New objective');
     await tester.enterText(
-      find.byType(TextFormField).at(2),
+      find.byKey(const ValueKey('lesson-title')),
+      'Edited lesson',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-objectives')),
+      'New objective',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('lesson-discussion')),
       'Persisted lesson body.',
     );
     await _tap(tester, 'Save lesson');

@@ -18,6 +18,9 @@ class LearningLesson {
     required this.content,
     this.isCompleted = false,
     this.isInProgress = false,
+    this.sections = const <String, String>{},
+    this.overview = '',
+    this.estimatedReadingMinutes,
   });
 
   final String id;
@@ -28,6 +31,9 @@ class LearningLesson {
   final String content;
   final bool isCompleted;
   final bool isInProgress;
+  final Map<String, String> sections;
+  final String overview;
+  final int? estimatedReadingMinutes;
 }
 
 class LearningModule {
