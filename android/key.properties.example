@@ -1,0 +1,7 @@
+# Copy this file to android/key.properties locally, then replace every value.
+# Never commit android/key.properties or the keystore.
+# storeFile may be an absolute path or a path relative to android/.
+storeFile=upload-keystore/ilocano-teatro-upload.jks
+storePassword=REPLACE_WITH_YOUR_KEYSTORE_PASSWORD
+keyAlias=ilocano-teatro-upload
+keyPassword=REPLACE_WITH_YOUR_KEY_PASSWORD
