@@ -292,6 +292,7 @@ void main() {
   testWidgets('empty published library explains there are no stories yet', (
     tester,
   ) async {
+    final repository = FakeStoryVaultRepository();
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
@@ -299,7 +300,7 @@ void main() {
           body: SingleChildScrollView(
             child: StoryVaultScreen(
               role: AppRole.student,
-              repository: FakeStoryVaultRepository(),
+              repository: repository,
               onOpenStory: (_) {},
               onReadChapter: (_, _, {preview = false}) {},
               onUseStory: (_) {},
@@ -312,6 +313,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('No published stories yet'), findsOneWidget);
     expect(find.text('Biag ni Lam-ang'), findsNothing);
+
+    repository.stories.add(
+      storyFixture(
+        title: 'Newly published story',
+        chapters: [chapterFixture()],
+      ),
+    );
+    await tester.tap(find.byTooltip('Refresh stories'));
+    await tester.pumpAndSettle();
+    expect(find.text('Newly published story'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(

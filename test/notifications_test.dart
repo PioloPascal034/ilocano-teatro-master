@@ -96,7 +96,43 @@ void main() {
     await tester.tap(find.text('Mark all as read'));
     await tester.pumpAndSettle();
     expect(repository.notifications.single.isRead, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('tapping any notification marks it read without a submission link', (
+    tester,
+  ) async {
+    final repository = FakeNotificationRepository(
+      notifications: [
+        AppNotification(
+          id: 'general',
+          title: 'A general update',
+          message: 'Your class has a new announcement.',
+          type: 'general',
+          createdAt: now,
+          isRead: false,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: NotificationsScreen(
+            role: AppRole.student,
+            repository: repository,
+            onNavigate: (_, _) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('A general update'));
+    await tester.pumpAndSettle();
+
     expect(repository.notifications.single.isRead, isTrue);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('notification screen fits narrow mobile width', (tester) async {

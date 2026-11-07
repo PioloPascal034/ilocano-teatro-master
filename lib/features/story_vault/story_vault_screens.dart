@@ -107,13 +107,23 @@ class _StoryVaultScreenState extends State<StoryVaultScreen> {
             title: 'Ilocano Story Vault',
             description:
                 'Explore published cultural stories and continue at your own pace.',
-            trailing: snapshot.data?.editor == true
-                ? FilledButton.icon(
+            trailing: Wrap(
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                IconButton(
+                  tooltip: 'Refresh stories',
+                  onPressed: _reload,
+                  icon: const Icon(Icons.refresh),
+                ),
+                if (snapshot.data?.editor == true)
+                  FilledButton.icon(
                     onPressed: () => widget.onEditStory(null),
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('New story'),
-                  )
-                : null,
+                  ),
+              ],
+            ),
           ),
           if (snapshot.hasError)
             _LoadError(onRetry: _reload)
@@ -232,6 +242,7 @@ class _LibraryFilters extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
+      const TeatroEyebrow('STORY GENRE'),
       TextField(
         controller: search,
         onChanged: onSearch,
@@ -259,6 +270,8 @@ class _LibraryFilters extends StatelessWidget {
         ),
       ),
       if (showCompletion) ...[
+        const SizedBox(height: 8),
+        const TeatroEyebrow('READING STATUS'),
         const SizedBox(height: 5),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
