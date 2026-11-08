@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../features/legal/public_legal_screens.dart';
 import '../features/shell/app_shell.dart';
 
 enum AppRole { student, teacher }
@@ -44,6 +45,8 @@ enum AppDestination {
 }
 
 abstract final class AppRoutes {
+  static const privacy = '/privacy';
+  static const deleteAccount = '/delete-account';
   static const signIn = '/sign-in';
   static const signUp = '/sign-up';
   static const forgotPassword = '/forgot-password';
@@ -60,6 +63,16 @@ abstract final class AppRoutes {
       '/submission/${Uri.encodeComponent(submissionId)}';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
+    if (settings.name == privacy || settings.name == deleteAccount) {
+      return MaterialPageRoute<void>(
+        settings: settings,
+        builder: (_) => PublicLegalScreen(
+          page: settings.name == deleteAccount
+              ? PublicLegalPage.accountDeletion
+              : PublicLegalPage.privacy,
+        ),
+      );
+    }
     final destination = AppDestination.fromPath(settings.name);
     final arguments = settings.arguments;
     if (destination == null || arguments is! AppRole) {

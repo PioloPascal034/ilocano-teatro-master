@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Privacy Policy for Ilocano Teatro Master by MR Bisac Studios.">
+  <title>Privacy Policy — Ilocano Teatro Master</title>
+  <link rel="stylesheet" href="legal.css">
+</head>
+<body>
+  <main class="page">
+    <header class="brand">
+      <img src="icons/Icon-192.png" alt="Ilocano Teatro Master logo">
+      <div><strong>Ilocano Teatro Master</strong><span>MR Bisac Studios</span></div>
+    </header>
+    <section class="hero">
+      <div class="eyebrow">Privacy policy</div>
+      <h1>Learning, creating, and sharing with care.</h1>
+      <p class="lead">This policy explains what Ilocano Teatro Master handles for its student and teacher learning workflows, why it is used, and how to request deletion.</p>
+      <p class="updated">Last updated: 8 November 2026</p>
+      <nav class="nav"><a href="/delete-account">Request account deletion</a><a href="/">Open the application</a></nav>
+    </section>
+
+    <section class="card">
+      <h2>What the application does</h2>
+      <p>Ilocano Teatro Master supports Ilocano language and theatre learning. Students use lessons, quizzes, Story Vault chapters, Theme Builder drafts, submissions, notifications, and profiles. Teachers manage class codes, assigned students, progress, reviews, feedback, and their own profiles. A Curriculum Editor is a Teacher with an additional permission to manage approved curriculum and Story Vault content.</p>
+    </section>
+
+    <h2>Information handled</h2>
+    <ul>
+      <li><strong>Account and profile:</strong> email address used for authentication, full name, role, teacher/student connection, class-code records, and optional profile avatar.</li>
+      <li><strong>Learning activity:</strong> module and lesson progress, completion status, quiz answers/results and attempt history.</li>
+      <li><strong>Creative work:</strong> Theme Builder drafts, submissions, revision versions, teacher feedback, rubric scores, review decisions, and related notifications.</li>
+      <li><strong>Story Vault activity:</strong> chapter reading progress. Story covers and chapter illustrations may be stored as private media. Lesson illustrations are not currently implemented.</li>
+      <li><strong>Technical service data:</strong> Supabase Auth and hosting providers may process the technical information needed to authenticate requests, deliver the application, protect services, and maintain their infrastructure. This page does not make a separate claim about provider log retention.</li>
+    </ul>
+
+    <h2>How information is used</h2>
+    <p>Information is used to authenticate accounts, assign students to teachers, show the correct role-based features, save learning progress, score and display quiz results, deliver submissions and feedback, show notifications, display private media to authorized users, and maintain the application. It is not used to provide the excluded AI Writing Coach feature.</p>
+
+    <h2>Access and permissions</h2>
+    <p>Students access their own account activity and assigned learning. Teachers access assigned-student workflows and their teaching tools. Curriculum Editors receive additional content-management permissions. Supabase Row Level Security and server-side functions enforce access; user-interface navigation is not the sole security control.</p>
+
+    <h2>Storage and service providers</h2>
+    <p>The application uses Supabase for authentication, database services, Row Level Security, and private Storage. Private avatars and Story Vault media are delivered through the authenticated <code>get-private-media</code> Edge Function, which resolves access before returning image bytes. Flutter Web static assets may be hosted through Firebase Hosting when the client configures that service. The app's public Supabase configuration contains only the project URL and publishable client key; service-role keys are not placed in the app or Web build.</p>
+
+    <h2>Security</h2>
+    <p>Access is protected through Supabase Auth, role checks, Row Level Security, editor-only RPC authorization, and private media policies. No online service can be represented as risk-free, and users should protect their passwords and contact MR Bisac Studios if they suspect unauthorized access.</p>
+
+    <h2>Retention and deletion</h2>
+    <p>Records are retained while needed to provide the application's learning, teaching, review, and account services. This page does not promise a fixed retention period or automatic deletion timeline that has not been verified. To request account and associated-data deletion, email <a href="mailto:marcronielbisac@gmail.com">marcronielbisac@gmail.com</a> from the account email address and identify the account. We may need to verify ownership before processing the request. Some information may need to be retained where required for security, legal obligations, dispute resolution, or reliable service records; the response will explain any applicable exception.</p>
+
+    <h2>Changes and contact</h2>
+    <p>Material policy changes will be reflected on this page. Questions or deletion requests should be sent to <a href="mailto:marcronielbisac@gmail.com">marcronielbisac@gmail.com</a>.</p>
+
+    <footer>© MR Bisac Studios · <a href="/privacy">Privacy Policy</a> · <a href="/delete-account">Account Deletion</a></footer>
+  </main>
+</body>
+</html>

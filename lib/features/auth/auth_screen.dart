@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../app/app_routes.dart';
 import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
 
@@ -171,6 +172,22 @@ class _AuthScreenState extends State<AuthScreen> {
           style: Theme.of(
             context,
           ).textTheme.bodySmall?.copyWith(color: TeatroColors.muted),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 4,
+          children: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.privacy),
+              child: const Text('Privacy Policy'),
+            ),
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.deleteAccount),
+              child: const Text('Account Deletion'),
+            ),
+          ],
         ),
       ],
     ),
