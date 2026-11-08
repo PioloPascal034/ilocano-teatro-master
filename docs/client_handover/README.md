@@ -13,3 +13,18 @@ Documents:
 7. [Known Limitations](./07_KNOWN_LIMITATIONS.md)
 
 Secrets, local environment files, account credentials, and signing material are intentionally excluded.
+
+## Client handover checklist
+
+- [ ] Student account registration/login and role verified.
+- [ ] Regular Teacher account verified.
+- [ ] Class-code generation, assignment, progress, review, and profile workflows accepted.
+- [ ] Client-designated Curriculum Editor account identified and authorized. **Not yet designated.**
+- [ ] Android real-device acceptance completed.
+- [ ] Web desktop/mobile acceptance completed.
+- [ ] Curriculum content ownership and approval responsibility assigned.
+- [ ] Supabase administration responsibility assigned.
+- [ ] Google Play developer account ownership under MR Bisac Studios confirmed.
+- [ ] Web hosting/Firebase ownership and maintenance responsibility assigned.
+- [ ] Known limitations reviewed.
+- [ ] Client acceptance/sign-off recorded.

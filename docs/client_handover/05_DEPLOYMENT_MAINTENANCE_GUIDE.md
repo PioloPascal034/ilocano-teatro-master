@@ -10,19 +10,19 @@ flutter build apk --release --dart-define-from-file=supabase.local.json
 flutter build appbundle --release --dart-define-from-file=supabase.local.json
 ```
 
-The current repository release build type points to the Android debug signing config. These commands therefore produce build artifacts but do not establish production signing or Google Play readiness. Before distribution, configure a protected release keystore through `key.properties`/CI secrets, verify the application ID, version code/name, signing certificate, and backup of the keystore. Do not commit any of these secrets.
+The release build type uses the dedicated upload-keystore configuration. The local keystore and signing properties must exist before these commands can succeed; the build fails safely when they are missing. Verify application ID `com.mrbisacstudios.ilocanoteatromaster`, version code/name, signing certificate, and secure keystore backup. Do not commit any signing secrets.
 
 ## Google Play preparation
 
 Before upload, the owner must verify production signing, Play App Signing, privacy policy URL, Data Safety declarations, content rating, target SDK, app access instructions, screenshots, store listing, permission declarations, and release notes. No Play upload or publication is performed by this handover.
 
-## Flutter Web build and hosting
+## Flutter Web build and Firebase Hosting preparation
 
 ```powershell
 flutter build web --release --dart-define-from-file=supabase.local.json
 ```
 
-Host the contents of `build/web` on the approved static host. Configure SPA fallback so deep links return `index.html`, enable HTTPS, and set cache headers appropriate for hashed assets. Confirm the Supabase URL and publishable key are the intended non-secret production values. Do not deploy publicly without owner approval.
+Host the contents of `build/web` on the client-approved host. For Firebase Hosting, initialize/link the intended Firebase project, configure `build/web` as the public directory, enable SPA fallback to `/index.html`, verify HTTPS and cache headers, and run a preview or staging deployment first. No Firebase Hosting deployment has been verified or performed in this handover.
 
 ## Supabase configuration
 
@@ -42,5 +42,9 @@ Run static analysis, the final regression suite, targeted tests for changed feat
 
 ## Teacher account provisioning
 
-Create teacher accounts through the approved owner/admin process, assign the role and curriculum-editor permission deliberately, and create/revoke class codes through the server-side workflow. Do not distribute credentials through source files or documentation.
+Create Teacher accounts through the approved owner/admin process. The client has not yet designated its Curriculum Editor. After designation, grant the additional `curriculum_editors` authorization deliberately and document who owns curriculum review and transfer. Teachers can create/revoke their class codes through the application. Do not distribute credentials through source files or documentation.
+
+## Google Play Console preparation
+
+The account owner must configure the Google Play Console application under MR Bisac Studios, verify Play App Signing and upload-key ownership, complete privacy policy and Data Safety declarations, content rating, app access instructions, screenshots, store listing, target SDK requirements, and release notes. Upload the signed AAB manually only after client approval. No Play Console upload or publication has occurred.
 

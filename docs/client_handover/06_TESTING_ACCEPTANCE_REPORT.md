@@ -2,7 +2,7 @@
 
 ## Status summary
 
-This is a handover evidence report, not a claim that every device and production-release requirement is complete. Automated tests and prior live Web/repository evidence cover the core workflows. Android real-device testing is not verified because no Android device was connected. Release artifacts are not Play Store-ready until production signing and policy requirements are completed.
+This is a handover evidence report, not a claim that every device and production-release requirement is complete. Previously completed automated QA and prior live Web/repository evidence cover the core workflows. Android real-device and final client Web acceptance remain pending. No deployment or publication is claimed.
 
 ## Evidence labels
 
@@ -12,17 +12,27 @@ This is a handover evidence report, not a claim that every device and production
 
 ## Final checks
 
+| Targeted final check | Result | Evidence |
+|---|---|---|
+| Curriculum tests | PASS | 19 tests passed. |
+| Quiz-management tests | PASS | 10 tests passed. |
+| Story Vault tests | PASS | 24 tests passed. |
+| Targeted Flutter analysis | PASS | Changed quiz and Story Vault files reported no issues. |
+| Android Internet permission | PASS | Android main manifest contains `android.permission.INTERNET`; the release permission fix is present. |
+| Database cleanup | PASS for reported scope | Prior readiness evidence recorded cleanup/unpublication of QA records; no new live cleanup was performed during this documentation update. |
+
 | Check | Result | Evidence |
 |---|---|---|
-| Git branch and working tree inspection | PASS | Branch `staging-III`; pre-existing user changes preserved. |
-| Flutter analyze | PASS (existing and final run initiated) | Existing readiness report records no issues; final command completed its analysis phase without a reported diagnostic. |
-| Flutter regression suite | PASS for existing evidence | Readiness report records 114 tests passed; final suite exercised current modified tests, with live QA skipped by default. |
+| Git branch and working tree inspection | PASS | Current branch is `Final-checking`; pre-existing user changes were preserved. |
+| Previously completed Flutter QA | PASS | Existing readiness report records 114 tests passed; live QA was opt-in and skipped by default. |
+| Targeted Flutter analysis | PASS | Current targeted analysis reported no issues. |
+| Targeted Flutter tests | PASS | 19 curriculum, 10 quiz-management, and 24 Story Vault tests passed. |
 | Android device / `adb devices` | NOT VERIFIED | `flutter devices` showed no usable Android phone; `adb` is not available on PATH in this environment. |
 | Android debug build | PASS | Existing readiness report: debug APK built with non-secret defines. |
-| Android release APK | PASS — artifact built | `build/app/outputs/flutter-apk/app-release.apk`; installable artifact built with the repository's debug signing configuration. |
-| Android AAB | PASS — artifact built | `build/app/outputs/bundle/release/app-release.aab`; prepared locally, not uploaded, and not production-signed. |
+| Android release APK | NOT VERIFIED for current production signing | Release commands are prepared; current client acceptance and final signature verification remain pending. |
+| Android AAB | NOT VERIFIED for current production signing | AAB upload has not occurred. |
 | Web release build | PASS | `build/web` refreshed with the release build using the non-secret Supabase defines; no public deployment performed. |
-| Live Web student/teacher flows | PASS / PARTIAL | Prior live Web evidence covers login, navigation, dashboard, curriculum drafts, quiz/story drafts, queue, progress, notifications, and logout; UI publish/upload actions remain open. |
+| Live Web student/teacher flows | PASS / PARTIAL | Prior live Web evidence covers login, navigation, dashboard, curriculum drafts, quiz/story drafts, queue, progress, notifications, and logout; final client acceptance and some UI publish/upload actions remain open. |
 | Private media | PASS for repository/live function checks | Prior live evidence covered upload/download and `get-private-media`; avatar rendering/upload remains partial in UI. |
 
 ## Feature checklist
@@ -46,10 +56,11 @@ This is a handover evidence report, not a claim that every device and production
 ## Known issues and acceptance gates
 
 1. No Android phone was connected, so the client must perform the Android walkthrough on the target phone.
-2. Current Android release signing is debug signing. Configure and verify a protected production keystore before distribution.
+2. Verify the upload keystore, certificate, APK/AAB signatures, and secure backup before distribution.
 3. Published learning content is incomplete and Story Vault has no approved published story in the prior evidence environment.
 4. UI publication, file chooser upload, browser image rendering, and live review-decision submission need client walkthrough confirmation.
 5. Broader RLS isolation using an unassigned teacher and a second student remains unverified.
+6. The client has not yet designated a Curriculum Editor.
 
 ## Client acceptance checklist
 
@@ -60,5 +71,10 @@ This is a handover evidence report, not a claim that every device and production
 - [ ] Privacy, Data Safety, content rating, and store declarations approved.
 - [ ] Hosting and Supabase deployment approved.
 - [ ] Teacher accounts and class assignments provisioned.
+- [ ] Client-designated Curriculum Editor account provisioned and authorized.
+- [ ] Curriculum content ownership and review responsibility assigned.
+- [ ] Supabase administration responsibility assigned.
+- [ ] Google Play developer account ownership confirmed.
+- [ ] Web hosting/Firebase ownership and maintenance responsibility confirmed.
 - [ ] Client signs off on known limitations.
 

@@ -10,6 +10,8 @@
 
 If the profile cannot be loaded, use Retry when offered. Do not create a second account to work around a temporary loading error.
 
+Registration creates a student account with the default student role. Teacher and Curriculum Editor permissions are provisioned by the project owner.
+
 ## Joining a teacher with a class code
 
 Open Profile or the class-assignment panel, enter the class code supplied by the teacher, and submit it. A valid, active code assigns the student to the teacher. Codes are validated server-side. If the code is expired, revoked, invalid, or already used, follow the message and ask the teacher for a current code.
@@ -17,6 +19,8 @@ Open Profile or the class-assignment panel, enter the class code supplied by the
 ## Dashboard and profile
 
 The Dashboard summarizes learning activity and saved progress. Profile shows identity, role, class assignment, and avatar controls. Select a supported image through the platform file/photo picker, preview it, and save. If an upload or save fails, the previous saved avatar is preserved and the page displays feedback.
+
+Use Notifications to read teacher review events, submission feedback, and other account updates. Profile also provides logout and class-connection information.
 
 ## Learning modules and lessons
 
@@ -34,16 +38,11 @@ Open Story Vault and choose a published story. Select a chapter to read its text
 
 Use Theme Builder to work through its six steps. Save a draft when leaving unfinished work. Open My Drafts to reopen a draft, inspect feedback, revise, and resubmit. Each submission is versioned; a teacher may request revision or approve a version.
 
+Teacher feedback appears in the draft/revision history and through Notifications. Read rubric scores and comments before preparing a revision.
+
 ## Notifications and progress
 
 Notifications report review activity and other account events. Open a notification to read it and use the mark-read control where available. Progress views summarize lesson completion and quiz outcomes. Refresh or revisit the screen after a save to confirm persistence.
 
-## Screenshot placeholders
 
-Add client-approved screenshots during the walkthrough; no screenshots are fabricated in this handover.
-
-- `[Screenshot: student login and dashboard]`
-- `[Screenshot: module lesson and saved progress]`
-- `[Screenshot: Story Vault chapter]`
-- `[Screenshot: Theme Builder draft and feedback]`
 

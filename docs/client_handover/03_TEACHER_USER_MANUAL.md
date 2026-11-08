@@ -1,8 +1,8 @@
 # Teacher User Manual
 
-## Teacher access and class codes
+## Regular Teacher access and class codes
 
-Teacher accounts are provisioned by the project owner. Sign in with the supplied credentials. Teachers view their assigned students and use the class-code workflow to connect students. The application reads assignments; account provisioning and broader assignment administration are owner responsibilities.
+Teacher accounts are provisioned by the project owner. Sign in with the supplied credentials. A regular Teacher can generate, view, copy, and revoke an active class code from Profile. Students use that code to connect to the teacher; generating a replacement does not remove existing assignments.
 
 ## Dashboard and assigned students
 
@@ -36,10 +36,22 @@ Open Review Queue, filter/search as needed, select an assigned student submissio
 
 Use the student progress view for lesson completion, quiz results, and activity. Notifications surface new submissions and review events. Confirm the selected student is assigned before reviewing or sharing information.
 
-## Screenshot placeholders
+## Regular Teacher permissions
 
-- `[Screenshot: teacher dashboard and assigned students]`
-- `[Screenshot: structured lesson editor]`
-- `[Screenshot: quiz editor and preview]`
-- `[Screenshot: Review Queue rubric]`
+Regular Teachers can:
+
+- Generate, view, copy, and revoke class codes.
+- View assigned students and monitor learning progress.
+- Review submitted work and provide feedback and rubric scores.
+- Manage their own profile and avatar.
+
+Regular Teachers cannot create, edit, publish, unpublish, or delete official curriculum modules, lessons, quizzes, stories, or chapters. Those controls are hidden and enforced by Supabase authorization.
+
+## Curriculum Editor permissions
+
+A Curriculum Editor is a Teacher account with an additional owner-provisioned permission. Curriculum Editors can create, edit, preview, publish, and manage modules, structured lessons, quizzes, Story Vault stories, and chapters. They can delete eligible unpublished modules, lessons, quizzes, stories, and chapters.
+
+Deletion is permanent and restricted. Published content must be unpublished first; lessons and chapters with student progress cannot be deleted; quizzes with student attempts cannot be deleted; and module deletion may remove dependent unpublished lessons, quizzes, questions, and options after all protections pass. Story/chapter deletion can affect reading progress and private media, so the server checks dependencies and media references.
+
+Curriculum management is separate from regular teaching duties. A Curriculum Editor still reviews assigned student work as a Teacher, but the additional permission should be granted only to the client-designated content owner.
 
