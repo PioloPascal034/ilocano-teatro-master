@@ -121,6 +121,7 @@ class _TeacherQuizManagementScreenState
                   editor: data.editor,
                   onManage: () => _manage(quiz, editor: data.editor),
                   onPublish: () => _publication(quiz),
+                  onDelete: () => _deleteQuiz(quiz),
                 ),
             if (data.editor)
               const Padding(
@@ -211,6 +212,35 @@ class _TeacherQuizManagementScreenState
     );
   }
 
+  Future<void> _deleteQuiz(ManagedQuiz quiz) async {
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete quiz?'),
+            content: Text(
+              '“${quiz.title}” will be permanently deleted with its questions and answer options. The server will reject deletion while it is published or has student attempts.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Delete quiz'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+    await _run(
+      () => widget.repository.deleteQuiz(quiz.id),
+      'Quiz “${quiz.title}” was deleted.',
+    );
+  }
+
   Future<void> _run(Future<void> Function() action, String success) async {
     setState(() => _busy = true);
     try {
@@ -251,11 +281,13 @@ class _QuizRow extends StatelessWidget {
     required this.editor,
     required this.onManage,
     required this.onPublish,
+    required this.onDelete,
   });
   final ManagedQuiz quiz;
   final bool editor;
   final VoidCallback onManage;
   final VoidCallback onPublish;
+  final VoidCallback onDelete;
   @override
   Widget build(BuildContext context) => Container(
     decoration: const BoxDecoration(
@@ -304,6 +336,12 @@ class _QuizRow extends StatelessWidget {
                 ),
                 label: Text(quiz.isPublished ? 'Unpublish' : 'Publish'),
               ),
+            if (editor)
+              TextButton.icon(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline, size: 17),
+                label: const Text('Delete'),
+              ),
           ],
         );
         return compact
@@ -314,7 +352,7 @@ class _QuizRow extends StatelessWidget {
             : Row(
                 children: [
                   Expanded(child: summary),
-                  actions,
+                  Flexible(child: actions),
                 ],
               );
       },

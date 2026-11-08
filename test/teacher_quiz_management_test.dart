@@ -38,6 +38,13 @@ Future<void> tapText(WidgetTester tester, String text) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> tapLastText(WidgetTester tester, String text) async {
+  final target = find.text(text).last;
+  await tester.ensureVisible(target);
+  await tester.tap(target);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets(
     'Curriculum Editor gets create controls; ordinary teacher is read-only',
@@ -63,8 +70,70 @@ void main() {
       expect(find.text('Published quiz'), findsOneWidget);
       expect(find.text('View'), findsOneWidget);
       expect(find.text('Manage'), findsNothing);
+      expect(find.text('Delete'), findsNothing);
     },
   );
+
+  testWidgets('editor can cancel then delete a quiz without its module', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repo = FakeQuizManagementRepository();
+    repo.quizzes.addAll([
+      const ManagedQuiz(
+        id: 'quiz-delete',
+        moduleId: 'module-1',
+        title: 'Testing quiz',
+        description: '',
+        passingScore: 70,
+        isPublished: false,
+      ),
+      const ManagedQuiz(
+        id: 'quiz-keep',
+        moduleId: 'module-1',
+        title: 'Keep quiz',
+        description: '',
+        passingScore: 70,
+        isPublished: false,
+      ),
+    ]);
+    await pumpScreen(tester, repo);
+
+    await tapText(tester, 'Delete');
+    expect(find.text('Delete quiz?'), findsOneWidget);
+    expect(find.textContaining('Testing quiz'), findsWidgets);
+    await tapText(tester, 'Cancel');
+    expect(repo.quizzes, hasLength(2));
+
+    await tapText(tester, 'Delete');
+    await tapLastText(tester, 'Delete quiz');
+    expect(repo.quizzes.map((quiz) => quiz.title), ['Keep quiz']);
+  });
+
+  testWidgets('quiz deletion reports existing student attempts', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repo = FakeQuizManagementRepository(hasAttempts: true);
+    repo.quizzes.add(
+      const ManagedQuiz(
+        id: 'quiz-attempted',
+        moduleId: 'module-1',
+        title: 'Attempted quiz',
+        description: '',
+        passingScore: 70,
+        isPublished: false,
+      ),
+    );
+    await pumpScreen(tester, repo);
+
+    await tapText(tester, 'Delete');
+    await tapLastText(tester, 'Delete quiz');
+    expect(find.textContaining('student attempts'), findsOneWidget);
+    expect(repo.quizzes, hasLength(1));
+  });
 
   testWidgets('creates an unpublished quiz and edits metadata', (tester) async {
     addTearDown(tester.view.resetPhysicalSize);

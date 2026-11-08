@@ -11,7 +11,9 @@ abstract interface class StoryVaultRepository {
   Future<List<CulturalStory>> loadStories();
   Future<CulturalStory?> loadStory(String storyId);
   Future<CulturalStory> saveStory(StoryMetadataInput input);
+  Future<void> deleteStory(String storyId);
   Future<StoryChapter> saveChapter(StoryChapterInput input);
+  Future<void> deleteChapter(String chapterId);
   Future<void> reorderChapters(String storyId, List<String> chapterIds);
   Future<void> markChapterRead(String chapterId);
   Future<Uint8List> downloadImage({
@@ -213,6 +215,41 @@ class SupabaseStoryVaultRepository implements StoryVaultRepository {
   }
 
   @override
+  Future<void> deleteStory(String storyId) async {
+    await _requireEditor();
+    final rows = await _client.rpc(
+      'delete_story',
+      params: {'p_story_id': storyId},
+    );
+    final storagePaths = (rows as List<dynamic>)
+        .map(
+          (row) =>
+              (Map<String, dynamic>.from(row as Map))['storage_path'] as String,
+        )
+        .toSet();
+
+    final failedPaths = <String>[];
+    for (final path in storagePaths) {
+      try {
+        await _client.storage.from(bucketName).remove([path]);
+      } catch (_) {
+        failedPaths.add(path);
+      }
+    }
+    if (failedPaths.isNotEmpty) {
+      throw StateError(
+        'The story was deleted, but ${failedPaths.length} media file(s) '
+        'could not be removed. Retry cleanup from Supabase Storage.',
+      );
+    }
+
+    await _client.rpc(
+      'complete_story_deletion',
+      params: {'p_story_id': storyId},
+    );
+  }
+
+  @override
   Future<StoryChapter> saveChapter(StoryChapterInput input) async {
     await _requireEditor();
     final values = <String, dynamic>{
@@ -247,6 +284,34 @@ class SupabaseStoryVaultRepository implements StoryVaultRepository {
       );
     }
     return chapter;
+  }
+
+  @override
+  Future<void> deleteChapter(String chapterId) async {
+    await _requireEditor();
+    final rows = await _client.rpc(
+      'delete_story_chapter',
+      params: {'p_chapter_id': chapterId},
+    );
+    final storagePaths = (rows as List<dynamic>)
+        .map(
+          (row) =>
+              (Map<String, dynamic>.from(row as Map))['storage_path'] as String,
+        )
+        .toSet();
+    for (final path in storagePaths) {
+      try {
+        await _client.storage.from(bucketName).remove([path]);
+      } catch (_) {
+        throw StateError(
+          'The chapter was deleted, but its illustration could not be removed. Retry cleanup from Supabase Storage.',
+        );
+      }
+      await _client.rpc(
+        'complete_story_media_cleanup',
+        params: {'p_storage_path': path},
+      );
+    }
   }
 
   @override

@@ -21,6 +21,8 @@ abstract interface class CurriculumRepository {
     required String description,
   });
 
+  Future<void> deleteModule(String moduleId);
+
   Future<void> setModulePublished({
     required String moduleId,
     required bool isPublished,
@@ -45,6 +47,8 @@ abstract interface class CurriculumRepository {
     String overview = '',
     int? estimatedReadingMinutes,
   });
+
+  Future<void> deleteLesson(String lessonId);
 
   Future<void> setLessonPublished({
     required String lessonId,
@@ -216,6 +220,15 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
   }
 
   @override
+  Future<void> deleteModule(String moduleId) async {
+    await _requireEditor();
+    await _client.rpc(
+      'delete_curriculum_module',
+      params: {'p_module_id': moduleId},
+    );
+  }
+
+  @override
   Future<void> setModulePublished({
     required String moduleId,
     required bool isPublished,
@@ -295,6 +308,15 @@ class SupabaseCurriculumRepository implements CurriculumRepository {
         .eq('lesson_id', lessonId)
         .select('lesson_id');
     if (rows.isEmpty) throw StateError('The lesson was not updated.');
+  }
+
+  @override
+  Future<void> deleteLesson(String lessonId) async {
+    await _requireEditor();
+    await _client.rpc(
+      'delete_curriculum_lesson',
+      params: {'p_lesson_id': lessonId},
+    );
   }
 
   @override

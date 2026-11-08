@@ -140,6 +140,14 @@ class FakeCurriculumRepository implements CurriculumRepository {
   }
 
   @override
+  Future<void> deleteModule(String moduleId) async {
+    _throwMutationError();
+    final index = _modules.indexWhere((module) => module.id == moduleId);
+    if (index < 0) throw StateError('Module not found.');
+    _modules.removeAt(index);
+  }
+
+  @override
   Future<void> setModulePublished({
     required String moduleId,
     required bool isPublished,
@@ -216,6 +224,20 @@ class FakeCurriculumRepository implements CurriculumRepository {
         lessonOrder: old.lessonOrder,
         isPublished: old.isPublished,
       );
+      _replaceLessons(i, lessons);
+      return;
+    }
+    throw StateError('Lesson not found.');
+  }
+
+  @override
+  Future<void> deleteLesson(String lessonId) async {
+    _throwMutationError();
+    for (var i = 0; i < _modules.length; i++) {
+      final lessons = [..._modules[i].lessons];
+      final index = lessons.indexWhere((lesson) => lesson.id == lessonId);
+      if (index < 0) continue;
+      lessons.removeAt(index);
       _replaceLessons(i, lessons);
       return;
     }

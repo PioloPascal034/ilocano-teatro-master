@@ -22,6 +22,7 @@ abstract interface class QuizManagementRepository {
     required String quizId,
     required bool isPublished,
   });
+  Future<void> deleteQuiz(String quizId);
   Future<String> createQuestion({
     required String quizId,
     required String text,
@@ -241,6 +242,12 @@ class SupabaseQuizManagementRepository implements QuizManagementRepository {
         .from('quizzes')
         .update({'is_published': isPublished})
         .eq('quiz_id', quizId);
+  }
+
+  @override
+  Future<void> deleteQuiz(String quizId) async {
+    _requireSession();
+    await _client.rpc('delete_curriculum_quiz', params: {'p_quiz_id': quizId});
   }
 
   @override

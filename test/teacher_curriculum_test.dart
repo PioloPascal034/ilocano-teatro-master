@@ -43,6 +43,14 @@ Future<void> _tap(WidgetTester tester, String label) async {
   }
 }
 
+Future<void> _tapLast(WidgetTester tester, String label) async {
+  final target = find.text(label).last;
+  await tester.ensureVisible(target);
+  await tester.pumpAndSettle();
+  await tester.tap(target);
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('editor sees unpublished content and management controls', (
     tester,
@@ -74,6 +82,115 @@ void main() {
     expect(find.text('Stage and Audience'), findsNothing);
     expect(find.text('Add lesson'), findsNothing);
     expect(find.byTooltip('Move lesson up'), findsNothing);
+    expect(find.text('Delete module'), findsNothing);
+    expect(find.text('Delete lesson'), findsNothing);
+  });
+
+  testWidgets('editor can cancel then delete an unpublished module', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = FakeCurriculumRepository(
+      modules: const [
+        CurriculumModule(
+          id: 'testing-module',
+          title: 'Testing Module',
+          description: 'Temporary content.',
+          displayOrder: 1,
+          isPublished: false,
+          lessons: [
+            CurriculumLesson(
+              id: 'testing-lesson',
+              moduleId: 'testing-module',
+              title: 'Testing Lesson',
+              objectives: null,
+              content: 'Temporary lesson.',
+              lessonOrder: 1,
+              isPublished: false,
+            ),
+          ],
+        ),
+      ],
+    );
+    await _pump(tester, repository);
+
+    await _tap(tester, 'Delete module');
+    expect(find.text('Delete module?'), findsOneWidget);
+    expect(find.textContaining('Testing Module'), findsWidgets);
+    await _tap(tester, 'Cancel');
+    expect(repository.modules, hasLength(1));
+
+    await _tap(tester, 'Delete module');
+    await _tapLast(tester, 'Delete module');
+    expect(repository.modules, isEmpty);
+  });
+
+  testWidgets('editor can cancel then delete an unpublished lesson', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = FakeCurriculumRepository(
+      modules: const [
+        CurriculumModule(
+          id: 'testing-module',
+          title: 'Testing Module',
+          description: 'Temporary content.',
+          displayOrder: 1,
+          isPublished: false,
+          lessons: [
+            CurriculumLesson(
+              id: 'testing-lesson',
+              moduleId: 'testing-module',
+              title: 'Testing Lesson',
+              objectives: null,
+              content: 'Temporary lesson.',
+              lessonOrder: 1,
+              isPublished: false,
+            ),
+          ],
+        ),
+      ],
+    );
+    await _pump(tester, repository);
+    await _tap(tester, 'Manage lessons');
+
+    await _tap(tester, 'Delete lesson');
+    expect(find.text('Delete lesson?'), findsOneWidget);
+    expect(find.textContaining('Testing Lesson'), findsWidgets);
+    await _tap(tester, 'Cancel');
+    expect(repository.modules.single.lessons, hasLength(1));
+
+    await _tap(tester, 'Delete lesson');
+    await _tapLast(tester, 'Delete lesson');
+    expect(repository.modules.single.lessons, isEmpty);
+  });
+
+  testWidgets('delete errors are shown without changing curriculum', (
+    tester,
+  ) async {
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final repository = FakeCurriculumRepository(
+      mutationError: StateError('Database delete failed.'),
+      modules: const [
+        CurriculumModule(
+          id: 'testing-module',
+          title: 'Testing Module',
+          description: 'Temporary content.',
+          displayOrder: 1,
+          isPublished: false,
+          lessons: [],
+        ),
+      ],
+    );
+    await _pump(tester, repository);
+
+    await _tap(tester, 'Delete module');
+    await _tapLast(tester, 'Delete module');
+    expect(find.text('Database delete failed.'), findsOneWidget);
+    expect(repository.modules, hasLength(1));
   });
 
   testWidgets('module creation saves as unpublished', (tester) async {

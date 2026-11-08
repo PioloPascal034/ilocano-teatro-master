@@ -2,10 +2,16 @@ import 'package:ilocano_teatro_master/features/quiz/data/quiz_management_reposit
 import 'package:ilocano_teatro_master/features/quiz/models/quiz_management_models.dart';
 
 class FakeQuizManagementRepository implements QuizManagementRepository {
-  FakeQuizManagementRepository({this.editor = true, this.loadError})
-    : quizzes = [];
+  FakeQuizManagementRepository({
+    this.editor = true,
+    this.loadError,
+    this.deleteError,
+    this.hasAttempts = false,
+  }) : quizzes = [];
   bool editor;
   final Object? loadError;
+  final Object? deleteError;
+  final bool hasAttempts;
   final List<ManagedQuiz> quizzes;
   final Map<String, List<ManagedQuizQuestion>> questions = {};
   List<String> reorderRequest = [];
@@ -101,6 +107,22 @@ class FakeQuizManagementRepository implements QuizManagementRepository {
       passingScore: q.passingScore,
       isPublished: isPublished,
     );
+  }
+
+  @override
+  Future<void> deleteQuiz(String quizId) async {
+    if (!editor) throw StateError('Curriculum editor permission required');
+    if (deleteError != null) throw deleteError!;
+    final index = quizzes.indexWhere((quiz) => quiz.id == quizId);
+    if (index < 0) throw StateError('Quiz not found');
+    if (quizzes[index].isPublished) {
+      throw StateError('Unpublish the quiz before deleting it');
+    }
+    if (hasAttempts) {
+      throw StateError('Quiz has student attempts and cannot be deleted');
+    }
+    quizzes.removeAt(index);
+    questions.remove(quizId);
   }
 
   @override

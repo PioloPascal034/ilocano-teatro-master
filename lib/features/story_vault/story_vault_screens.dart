@@ -38,6 +38,7 @@ class _StoryVaultScreenState extends State<StoryVaultScreen> {
   String _category = 'All';
   String _completion = 'All';
   String _query = '';
+  String? _deletingStoryId;
 
   @override
   void initState() {
@@ -61,6 +62,54 @@ class _StoryVaultScreenState extends State<StoryVaultScreen> {
     setState(() {
       _future = _load();
     });
+  }
+
+  Future<void> _deleteStory(CulturalStory story) async {
+    final chapterLabel = story.chapters.length == 1
+        ? '1 associated chapter'
+        : '${story.chapters.length} associated chapters';
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete story?'),
+        content: Text(
+          '“${story.title}” will be permanently deleted, including $chapterLabel '
+          'and all saved student reading progress. Its uploaded cover and '
+          'chapter illustrations will also be removed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete story'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _deletingStoryId = story.id);
+    try {
+      await widget.repository.deleteStory(story.id);
+      if (!mounted) return;
+      setState(() {
+        _deletingStoryId = null;
+        _future = _load();
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('“${story.title}” was deleted.')));
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _deletingStoryId = null);
+      final message = error.toString().replaceFirst('Bad state: ', '');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   @override
@@ -180,7 +229,9 @@ class _StoryVaultScreenState extends State<StoryVaultScreen> {
                             repository: widget.repository,
                             showProgress: widget.role == AppRole.student,
                             showInspiration: widget.role == AppRole.student,
-                            canEdit: snapshot.data!.editor,
+                            canEdit:
+                                snapshot.data!.editor &&
+                                _deletingStoryId == null,
                             onOpen: () => widget.onOpenStory(story.id),
                             onContinue:
                                 widget.role != AppRole.student ||
@@ -198,6 +249,7 @@ class _StoryVaultScreenState extends State<StoryVaultScreen> {
                               ),
                             ),
                             onEdit: () => widget.onEditStory(story.id),
+                            onDelete: () => _deleteStory(story),
                           ),
                         ),
                     ],
@@ -337,6 +389,7 @@ class _StoryCard extends StatelessWidget {
     required this.onContinue,
     required this.onUse,
     required this.onEdit,
+    required this.onDelete,
   });
   final CulturalStory story;
   final StoryVaultRepository repository;
@@ -347,6 +400,7 @@ class _StoryCard extends StatelessWidget {
   final VoidCallback? onContinue;
   final VoidCallback onUse;
   final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) => TeatroCard(
@@ -453,6 +507,12 @@ class _StoryCard extends StatelessWidget {
                       onPressed: onEdit,
                       icon: const Icon(Icons.edit_outlined, size: 16),
                       label: const Text('Edit'),
+                    ),
+                  if (canEdit)
+                    TextButton.icon(
+                      onPressed: onDelete,
+                      icon: const Icon(Icons.delete_outline, size: 16),
+                      label: const Text('Delete'),
                     ),
                 ],
               ),
