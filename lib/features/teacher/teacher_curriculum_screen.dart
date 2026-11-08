@@ -134,6 +134,7 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
                       }),
                       onEdit: () => _editModule(module),
                       onPublish: () => _confirmModulePublication(module),
+                      onDelete: () => _confirmModuleDeletion(module),
                     ),
                   ),
               ],
@@ -188,6 +189,13 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
                 onPressed: _actionBusy
                     ? null
                     : () => _confirmModulePublication(module),
+              ),
+              TeatroActionButton(
+                label: 'Delete module',
+                icon: Icons.delete_outline,
+                onPressed: _actionBusy
+                    ? null
+                    : () => _confirmModuleDeletion(module),
               ),
             ],
           )
@@ -279,6 +287,8 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
                     onEdit: () => _editLesson(module, module.lessons[index]),
                     onPublish: () =>
                         _confirmLessonPublication(module.lessons[index]),
+                    onDelete: () =>
+                        _confirmLessonDeletion(module.lessons[index]),
                     onMove: (direction) =>
                         _moveLesson(module, index, direction),
                   ),
@@ -404,6 +414,20 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
     );
   }
 
+  Future<void> _confirmModuleDeletion(CurriculumModule module) async {
+    final confirmed = await _confirm(
+      title: 'Delete module?',
+      message:
+          '“${module.title}” and its ${module.lessons.length} lesson(s) will be permanently deleted, including dependent quizzes, questions, and options. Any published content, student lesson progress, or quiz attempts will block deletion.',
+      confirmLabel: 'Delete module',
+    );
+    if (!confirmed) return;
+    await _perform(
+      () => widget.repository.deleteModule(module.id),
+      successMessage: 'Module “${module.title}” was deleted.',
+    );
+  }
+
   Future<void> _confirmLessonPublication(CurriculumLesson lesson) async {
     final publish = !lesson.isPublished;
     if (publish && lesson.needsContentReview) {
@@ -429,6 +453,20 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
     );
   }
 
+  Future<void> _confirmLessonDeletion(CurriculumLesson lesson) async {
+    final confirmed = await _confirm(
+      title: 'Delete lesson?',
+      message:
+          '“${lesson.title}” will be permanently deleted. Published lessons and lessons with student progress are protected and will be rejected by the server.',
+      confirmLabel: 'Delete lesson',
+    );
+    if (!confirmed) return;
+    await _perform(
+      () => widget.repository.deleteLesson(lesson.id),
+      successMessage: 'Lesson “${lesson.title}” was deleted.',
+    );
+  }
+
   Future<void> _moveLesson(
     CurriculumModule module,
     int index,
@@ -445,13 +483,16 @@ class _TeacherCurriculumScreenState extends State<TeacherCurriculumScreen> {
     );
   }
 
-  Future<void> _perform(Future<void> Function() action) async {
+  Future<void> _perform(
+    Future<void> Function() action, {
+    String successMessage = 'Curriculum changes saved.',
+  }) async {
     setState(() => _actionBusy = true);
     try {
       await action();
       if (!mounted) return;
       _refresh();
-      _showMessage('Curriculum changes saved.');
+      _showMessage(successMessage);
     } catch (error) {
       if (mounted) _showMessage(_errorText(error), isError: true);
     } finally {
@@ -516,6 +557,7 @@ class _ModuleCard extends StatelessWidget {
     required this.onManage,
     required this.onEdit,
     required this.onPublish,
+    required this.onDelete,
   });
 
   final CurriculumModule module;
@@ -524,6 +566,7 @@ class _ModuleCard extends StatelessWidget {
   final VoidCallback onManage;
   final VoidCallback onEdit;
   final VoidCallback onPublish;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) => TeatroCard(
@@ -587,6 +630,11 @@ class _ModuleCard extends StatelessWidget {
                     : Icons.publish_outlined,
                 onPressed: busy ? null : onPublish,
               ),
+              TeatroActionButton(
+                label: 'Delete module',
+                icon: Icons.delete_outline,
+                onPressed: busy ? null : onDelete,
+              ),
             ],
           ],
         );
@@ -599,7 +647,7 @@ class _ModuleCard extends StatelessWidget {
                 children: [
                   Expanded(child: summary),
                   const SizedBox(width: 12),
-                  actions,
+                  Flexible(child: actions),
                 ],
               );
       },
@@ -616,6 +664,7 @@ class _LessonRow extends StatelessWidget {
     required this.onPreview,
     required this.onEdit,
     required this.onPublish,
+    required this.onDelete,
     required this.onMove,
   });
 
@@ -626,6 +675,7 @@ class _LessonRow extends StatelessWidget {
   final VoidCallback onPreview;
   final VoidCallback onEdit;
   final VoidCallback onPublish;
+  final VoidCallback onDelete;
   final ValueChanged<int> onMove;
 
   @override
@@ -718,6 +768,11 @@ class _LessonRow extends StatelessWidget {
                 ),
                 label: Text(lesson.isPublished ? 'Unpublish' : 'Publish'),
               ),
+              TextButton.icon(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline, size: 16),
+                label: const Text('Delete lesson'),
+              ),
             ],
           ],
         );
@@ -730,7 +785,7 @@ class _LessonRow extends StatelessWidget {
                 children: [
                   Expanded(child: title),
                   const SizedBox(width: 8),
-                  actions,
+                  Flexible(child: actions),
                 ],
               );
       },
@@ -745,12 +800,23 @@ class _LessonPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TeatroCard(
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      TeatroEyebrow('LESSON PREVIEW · ${module.title}', color: TeatroColors.rust),
-      const SizedBox(height: 12),
-      LessonArticleBody(title: lesson.title, content: lesson.content,
-        sections: lesson.sections, objectives: lesson.objectives, overview: lesson.overview),
-    ]),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TeatroEyebrow(
+          'LESSON PREVIEW · ${module.title}',
+          color: TeatroColors.rust,
+        ),
+        const SizedBox(height: 12),
+        LessonArticleBody(
+          title: lesson.title,
+          content: lesson.content,
+          sections: lesson.sections,
+          objectives: lesson.objectives,
+          overview: lesson.overview,
+        ),
+      ],
+    ),
   );
 }
 
@@ -845,7 +911,6 @@ class _ModuleFormDialogState extends State<_ModuleFormDialog> {
     ],
   );
 }
-
 
 class _ReadOnlyNotice extends StatelessWidget {
   const _ReadOnlyNotice();

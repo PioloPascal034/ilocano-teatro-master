@@ -78,6 +78,55 @@ void main() {
     expect(find.text('Biag ni Lam-ang'), findsNothing);
   });
 
+  testWidgets('curriculum editor deletes a story after confirmation', (
+    tester,
+  ) async {
+    final repository = FakeStoryVaultRepository(
+      editor: true,
+      stories: [
+        storyFixture(title: 'Testing story', chapters: [chapterFixture()]),
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: StoryVaultScreen(
+              role: AppRole.teacher,
+              repository: repository,
+              onOpenStory: (_) {},
+              onReadChapter: (_, _, {preview = false}) {},
+              onUseStory: (_) {},
+              onEditStory: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete'), findsOneWidget);
+    await tester.ensureVisible(find.text('Delete'));
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete story'), findsOneWidget);
+    expect(find.text('Testing story'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(repository.stories, hasLength(1));
+
+    await tester.ensureVisible(find.text('Delete'));
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete story'));
+    await tester.pumpAndSettle();
+
+    expect(repository.stories, isEmpty);
+    expect(find.text('Delete'), findsNothing);
+  });
+
   testWidgets('Story Vault renders authenticated repository image bytes', (
     tester,
   ) async {
@@ -292,6 +341,7 @@ void main() {
   testWidgets('empty published library explains there are no stories yet', (
     tester,
   ) async {
+    final repository = FakeStoryVaultRepository();
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
@@ -299,7 +349,7 @@ void main() {
           body: SingleChildScrollView(
             child: StoryVaultScreen(
               role: AppRole.student,
-              repository: FakeStoryVaultRepository(),
+              repository: repository,
               onOpenStory: (_) {},
               onReadChapter: (_, _, {preview = false}) {},
               onUseStory: (_) {},
@@ -312,6 +362,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('No published stories yet'), findsOneWidget);
     expect(find.text('Biag ni Lam-ang'), findsNothing);
+
+    repository.stories.add(
+      storyFixture(
+        title: 'Newly published story',
+        chapters: [chapterFixture()],
+      ),
+    );
+    await tester.tap(find.byTooltip('Refresh stories'));
+    await tester.pumpAndSettle();
+    expect(find.text('Newly published story'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets(
@@ -580,6 +641,131 @@ void main() {
       await tester.tap(find.text('Publish chapter'));
       await tester.pumpAndSettle();
       expect(repository.stories.single.chapters.single.isPublished, isTrue);
+    },
+  );
+
+  testWidgets(
+    'editor can cancel then delete a draft chapter and preserve story',
+    (tester) async {
+      final repository = FakeStoryVaultRepository(
+        editor: true,
+        stories: [
+          storyFixture(
+            chapters: [
+              chapterFixture(
+                id: 'delete-chapter',
+                title: 'Testing chapter',
+                published: false,
+              ),
+              chapterFixture(
+                id: 'keep-chapter',
+                title: 'Keep chapter',
+                order: 2,
+                published: false,
+              ),
+            ],
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: StoryEditorScreen(
+                storyId: 'story-1',
+                repository: repository,
+                onBack: () {},
+                onPreview: (_) {},
+                onEditChapter: (_, _) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final deleteButton = find.byTooltip('Delete chapter').first;
+      await tester.ensureVisible(deleteButton);
+      await tester.tap(deleteButton);
+      await tester.pumpAndSettle();
+      expect(find.text('Delete chapter?'), findsOneWidget);
+      expect(find.text('Testing chapter'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(repository.stories.single.chapters, hasLength(2));
+
+      final deleteAgain = find.byTooltip('Delete chapter').first;
+      await tester.ensureVisible(deleteAgain);
+      await tester.tap(deleteAgain);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete chapter'));
+      await tester.pumpAndSettle();
+      expect(repository.stories, hasLength(1));
+      expect(repository.stories.single.chapters.map((item) => item.title), [
+        'Keep chapter',
+      ]);
+      expect(repository.stories.single.chapters.single.order, 1);
+    },
+  );
+
+  testWidgets(
+    'chapter deletion protects reading progress and cleanup failures',
+    (tester) async {
+      final repository = FakeStoryVaultRepository(
+        editor: true,
+        stories: [
+          storyFixture(
+            chapters: [
+              chapterFixture(
+                id: 'progress-chapter',
+                title: 'Progress chapter',
+                published: false,
+              ),
+            ],
+            completed: {'progress-chapter'},
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: StoryEditorScreen(
+                storyId: 'story-1',
+                repository: repository,
+                onBack: () {},
+                onPreview: (_) {},
+                onEditChapter: (_, _) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final firstDelete = find.byTooltip('Delete chapter').first;
+      await tester.ensureVisible(firstDelete);
+      await tester.tap(firstDelete);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete chapter'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('reading progress'), findsOneWidget);
+      expect(repository.stories.single.chapters, hasLength(1));
+
+      repository.failChapterCleanup = true;
+      repository.stories.single.completedChapterIds.clear();
+      final secondDelete = find.byTooltip('Delete chapter').first;
+      await tester.ensureVisible(secondDelete);
+      await tester.tap(secondDelete);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete chapter'));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('illustration cleanup failed'),
+        findsOneWidget,
+      );
+      expect(repository.stories.single.chapters, hasLength(1));
     },
   );
 

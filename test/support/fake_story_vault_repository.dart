@@ -11,6 +11,7 @@ class FakeStoryVaultRepository implements StoryVaultRepository {
     this.editor = false,
     this.failUploads = false,
     this.failDownloads = false,
+    this.failChapterCleanup = false,
   }) : stories = [...stories];
 
   final List<CulturalStory> stories;
@@ -20,6 +21,7 @@ class FakeStoryVaultRepository implements StoryVaultRepository {
   bool editor;
   bool failUploads;
   bool failDownloads;
+  bool failChapterCleanup;
   int downloadCalls = 0;
   int _nextStory = 0;
   int _nextChapter = 0;
@@ -77,6 +79,21 @@ class FakeStoryVaultRepository implements StoryVaultRepository {
   }
 
   @override
+  Future<void> deleteStory(String storyId) async {
+    _requireEditor();
+    final index = stories.indexWhere((story) => story.id == storyId);
+    if (index < 0) throw StateError('Story not found');
+    final story = stories.removeAt(index);
+    images.removeWhere(
+      (path, _) =>
+          path == story.coverStoragePath ||
+          story.chapters.any(
+            (chapter) => chapter.illustrationStoragePath == path,
+          ),
+    );
+  }
+
+  @override
   Future<StoryChapter> saveChapter(StoryChapterInput input) async {
     _requireEditor();
     final storyIndex = stories.indexWhere((story) => story.id == input.storyId);
@@ -110,6 +127,39 @@ class FakeStoryVaultRepository implements StoryVaultRepository {
       completed: story.completedChapterIds,
     );
     return chapter;
+  }
+
+  @override
+  Future<void> deleteChapter(String chapterId) async {
+    _requireEditor();
+    for (var storyIndex = 0; storyIndex < stories.length; storyIndex++) {
+      final story = stories[storyIndex];
+      final chapterIndex = story.chapters.indexWhere(
+        (chapter) => chapter.id == chapterId,
+      );
+      if (chapterIndex < 0) continue;
+      final chapter = story.chapters[chapterIndex];
+      if (chapter.isPublished) {
+        throw StateError('Unpublish the chapter before deleting it');
+      }
+      if (story.completedChapterIds.contains(chapterId)) {
+        throw StateError('Chapter has student reading progress');
+      }
+      if (failChapterCleanup) {
+        throw StateError('Chapter illustration cleanup failed');
+      }
+      final chapters = [...story.chapters]..removeAt(chapterIndex);
+      final normalized = [
+        for (var i = 0; i < chapters.length; i++)
+          _copyChapter(chapters[i], order: i + 1),
+      ];
+      stories[storyIndex] = story.withProgress(
+        normalized,
+        completed: {...story.completedChapterIds}..remove(chapterId),
+      );
+      return;
+    }
+    throw StateError('Chapter not found');
   }
 
   @override

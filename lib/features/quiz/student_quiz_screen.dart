@@ -66,7 +66,11 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
     );
   }
 
-  void _retryHome() => setState(() => _homeFuture = _loadHome());
+  void _retryHome() {
+    setState(() {
+      _homeFuture = _loadHome();
+    });
+  }
 
   void _openQuiz(String quizId) {
     setState(() {

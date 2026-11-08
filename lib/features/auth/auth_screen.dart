@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../app/app_routes.dart';
 import '../../app/app_theme.dart';
 import '../../core/widgets/teatro_widgets.dart';
 
@@ -104,16 +105,6 @@ class _AuthScreenState extends State<AuthScreen> {
                       _welcome(compact)
                     else
                       _form(compact),
-                    if (_mode == _AuthMode.welcome && !compact) ...[
-                      const SizedBox(height: 22),
-                      Center(
-                        child: Text(
-                          'Sign in or create a student account to continue',
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: TeatroColors.muted),
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -163,26 +154,40 @@ class _AuthScreenState extends State<AuthScreen> {
           spacing: 12,
           runSpacing: 12,
           children: [
-            _AccessCard(
-              icon: Icons.auto_stories_outlined,
-              title: 'Student access',
-              description: 'Learn, build a theme, and submit your concept.',
-              onTap: () => _setMode(_AuthMode.signIn),
+            FilledButton.icon(
+              onPressed: () => _setMode(_AuthMode.signIn),
+              icon: const Icon(Icons.login, size: 18),
+              label: const Text('Sign in'),
             ),
-            _AccessCard(
-              icon: Icons.groups_2_outlined,
-              title: 'Teacher / Reviewer access',
-              description: 'Review concepts and support student progress.',
-              onTap: () => _setMode(_AuthMode.signIn),
+            OutlinedButton.icon(
+              onPressed: () => _setMode(_AuthMode.signUp),
+              icon: const Icon(Icons.person_add_alt_1, size: 18),
+              label: const Text('Sign up'),
             ),
           ],
         ),
-        const SizedBox(height: 22),
-        Center(
-          child: TextButton(
-            onPressed: () => _setMode(_AuthMode.signIn),
-            child: const Text('Sign in with your account'),
-          ),
+        const SizedBox(height: 16),
+        Text(
+          'Student accounts can be created here. Teacher and reviewer roles are assigned by your school.',
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: TeatroColors.muted),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 4,
+          children: [
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.privacy),
+              child: const Text('Privacy Policy'),
+            ),
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(context).pushNamed(AppRoutes.deleteAccount),
+              child: const Text('Account Deletion'),
+            ),
+          ],
         ),
       ],
     ),
@@ -197,7 +202,7 @@ class _AuthScreenState extends State<AuthScreen> {
     };
     final description = switch (_mode) {
       _AuthMode.signIn =>
-        'Sign in with your school account. Teacher access is assigned by your school.',
+        'Use the same sign-in for students, teachers, and reviewers. Your role is assigned to your account.',
       _AuthMode.signUp => 'Create a student account to begin learning.',
       _AuthMode.forgotPassword =>
         'Enter your account email and we’ll send a reset link.',
@@ -310,7 +315,7 @@ class _AuthScreenState extends State<AuthScreen> {
                 TeatroPrimaryButton(
                   label: switch (_mode) {
                     _AuthMode.signIn => 'Sign in',
-                    _AuthMode.signUp => 'Create student account',
+                    _AuthMode.signUp => 'Create account',
                     _AuthMode.forgotPassword => 'Send reset link',
                     _AuthMode.welcome => '',
                   },
@@ -333,7 +338,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         const Text('New to Ilocano Teatro? '),
                         TextButton(
                           onPressed: () => _setMode(_AuthMode.signUp),
-                          child: const Text('Create a student account'),
+                          child: const Text('Sign up'),
                         ),
                       ],
                     ),
@@ -384,64 +389,5 @@ class _Brand extends StatelessWidget {
         style: Theme.of(context).textTheme.bodySmall?.copyWith(height: 1.05),
       ),
     ],
-  );
-}
-
-class _AccessCard extends StatelessWidget {
-  const _AccessCard({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String description;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 330,
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.all(17),
-        decoration: BoxDecoration(
-          color: TeatroColors.paper,
-          border: Border.all(color: TeatroColors.line),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: TeatroColors.rust, size: 21),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.titleMedium?.copyWith(fontSize: 13),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    description,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: TeatroColors.muted),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 7),
-            const Icon(Icons.arrow_forward, size: 17, color: TeatroColors.rust),
-          ],
-        ),
-      ),
-    ),
   );
 }

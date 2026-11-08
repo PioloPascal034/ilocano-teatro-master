@@ -40,15 +40,26 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   void _reload() {
-    final next = _repository.loadNotifications();
-    setState(() => _future = next);
-    next.then((items) {
-      if (mounted) {
-        widget.onUnreadCountChanged?.call(
-          items.where((item) => !item.isRead).length,
-        );
-      }
+    setState(() {
+      _future = _repository.loadNotifications();
     });
+  }
+
+  Future<void> _open(AppNotification item) async {
+    if (!item.isRead) {
+      try {
+        await _repository.markRead(item.id, true);
+        _reload();
+      } catch (error) {
+        if (mounted) _showError(error);
+        return;
+      }
+    }
+
+    final submissionId = item.relatedSubmissionId;
+    if (submissionId != null) {
+      widget.onNavigate(AppDestination.submissionReview, submissionId);
+    }
   }
 
   Future<void> _mark(AppNotification item, bool read) async {
@@ -153,17 +164,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     child: _NotificationCard(
                       item: item,
                       onMark: () => _mark(item, !item.isRead),
-                      onOpen: item.relatedSubmissionId == null
-                          ? null
-                          : () {
-                              _mark(item, true);
-                              widget.onNavigate(
-                                widget.role == AppRole.teacher
-                                    ? AppDestination.submissionReview
-                                    : AppDestination.submissionReview,
-                                item.relatedSubmissionId,
-                              );
-                            },
+                      onOpen: () => _open(item),
                     ),
                   ),
             ],
@@ -223,21 +224,22 @@ class _NotificationCard extends StatelessWidget {
   const _NotificationCard({
     required this.item,
     required this.onMark,
-    this.onOpen,
+    required this.onOpen,
   });
   final AppNotification item;
   final VoidCallback onMark;
-  final VoidCallback? onOpen;
+  final VoidCallback onOpen;
 
   @override
-  Widget build(BuildContext context) => TeatroCard(
-    padding: const EdgeInsets.all(14),
-    child: LayoutBuilder(
-      builder: (context, constraints) {
-        final compact = constraints.maxWidth < 520;
-        final copy = InkWell(
-          onTap: onOpen,
-          child: Column(
+  Widget build(BuildContext context) => InkWell(
+    onTap: onOpen,
+    borderRadius: BorderRadius.circular(10),
+    child: TeatroCard(
+      padding: const EdgeInsets.all(14),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 520;
+          final copy = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(item.title, style: Theme.of(context).textTheme.titleMedium),
@@ -255,46 +257,49 @@ class _NotificationCard extends StatelessWidget {
                   context,
                 ).textTheme.labelSmall?.copyWith(color: TeatroColors.muted),
               ),
-              if (onOpen != null)
-                Text(
-                  'Open ${item.relatedSubmissionId == null ? 'notification' : 'submission'}',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.labelSmall?.copyWith(color: TeatroColors.rust),
-                ),
+              Text(
+                item.relatedSubmissionId == null
+                    ? 'Tap to mark as read'
+                    : 'Open submission',
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: TeatroColors.rust),
+              ),
             ],
-          ),
-        );
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              item.isRead
-                  ? Icons.notifications_none_outlined
-                  : Icons.notifications_active_outlined,
-              color: item.isRead ? TeatroColors.muted : TeatroColors.success,
-              size: 21,
-            ),
-            const SizedBox(width: 11),
-            Expanded(child: copy),
-            compact
-                ? PopupMenuButton<String>(
-                    tooltip: 'Notification actions',
-                    onSelected: (_) => onMark(),
-                    itemBuilder: (_) => [
-                      PopupMenuItem(
-                        value: 'toggle',
-                        child: Text(item.isRead ? 'Mark unread' : 'Mark read'),
-                      ),
-                    ],
-                  )
-                : TextButton(
-                    onPressed: onMark,
-                    child: Text(item.isRead ? 'Mark unread' : 'Mark read'),
-                  ),
-          ],
-        );
-      },
+          );
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                item.isRead
+                    ? Icons.notifications_none_outlined
+                    : Icons.notifications_active_outlined,
+                color: item.isRead ? TeatroColors.muted : TeatroColors.success,
+                size: 21,
+              ),
+              const SizedBox(width: 11),
+              Expanded(child: copy),
+              compact
+                  ? PopupMenuButton<String>(
+                      tooltip: 'Notification actions',
+                      onSelected: (_) => onMark(),
+                      itemBuilder: (_) => [
+                        PopupMenuItem(
+                          value: 'toggle',
+                          child: Text(
+                            item.isRead ? 'Mark unread' : 'Mark read',
+                          ),
+                        ),
+                      ],
+                    )
+                  : TextButton(
+                      onPressed: onMark,
+                      child: Text(item.isRead ? 'Mark unread' : 'Mark read'),
+                    ),
+            ],
+          );
+        },
+      ),
     ),
   );
 }

@@ -300,6 +300,47 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
     }
   }
 
+  Future<void> _deleteChapter(StoryChapter chapter) async {
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Delete chapter?'),
+            content: Text(
+              '“${chapter.title}” will be permanently deleted. The server will reject deletion while the chapter is published or has student reading progress. Its illustration will be removed only if it is not referenced elsewhere.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Delete chapter'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await widget.repository.deleteChapter(chapter.id);
+      final refreshed = await widget.repository.loadStory(_storyId!);
+      if (!mounted) return;
+      if (refreshed == null) throw StateError('The story is unavailable.');
+      setState(() => _chapters = refreshed.chapters);
+      _toast('Chapter “${chapter.title}” was deleted.');
+    } catch (error) {
+      if (mounted) setState(() => _error = _friendlyError(error));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   void _toast(String message) {
     ScaffoldMessenger.of(
       context,
@@ -458,6 +499,7 @@ class _StoryEditorScreenState extends State<StoryEditorScreen> {
                       widget.onEditChapter(_storyId!, _chapters[index].id),
                   onPreview: () => widget.onPreview(_storyId!),
                   onMove: (direction) => _reorder(index, direction),
+                  onDelete: () => _deleteChapter(_chapters[index]),
                 ),
               ),
           const SizedBox(height: 10),
@@ -904,6 +946,7 @@ class _EditableChapterTile extends StatelessWidget {
     required this.onEdit,
     required this.onPreview,
     required this.onMove,
+    required this.onDelete,
   });
   final StoryChapter chapter;
   final int index;
@@ -911,6 +954,7 @@ class _EditableChapterTile extends StatelessWidget {
   final VoidCallback onEdit;
   final VoidCallback onPreview;
   final ValueChanged<int> onMove;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) => TeatroCard(
@@ -962,6 +1006,11 @@ class _EditableChapterTile extends StatelessWidget {
           tooltip: 'Edit chapter',
           onPressed: onEdit,
           icon: const Icon(Icons.edit_outlined),
+        ),
+        IconButton(
+          tooltip: 'Delete chapter',
+          onPressed: onDelete,
+          icon: const Icon(Icons.delete_outline),
         ),
       ],
     ),

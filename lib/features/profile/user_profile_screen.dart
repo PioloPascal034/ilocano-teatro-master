@@ -728,6 +728,28 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             SizedBox(height: compact ? 10 : 14),
             TeatroCard(
+              padding: EdgeInsets.all(compact ? 14 : 18),
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    'Need to remove your account?',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  TextButton.icon(
+                    onPressed: () => Navigator.of(
+                      context,
+                    ).pushNamed(AppRoutes.deleteAccount),
+                    icon: const Icon(Icons.open_in_new, size: 16),
+                    label: const Text('Account deletion request'),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: compact ? 10 : 14),
+            TeatroCard(
               padding: EdgeInsets.all(compact ? 15 : 22),
               child: Form(
                 key: _form,

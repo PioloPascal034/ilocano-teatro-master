@@ -1,4 +1,4 @@
-package com.example.ilocano_teatro_master
+package com.mrbisacstudios.ilocanoteatromaster
 
 import io.flutter.embedding.android.FlutterActivity
 

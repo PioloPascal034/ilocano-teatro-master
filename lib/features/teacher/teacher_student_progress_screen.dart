@@ -26,8 +26,11 @@ class _TeacherStudentProgressScreenState
     _students = widget.repository.loadAssignedStudents();
   }
 
-  void _retry() =>
-      setState(() => _students = widget.repository.loadAssignedStudents());
+  void _retry() {
+    setState(() {
+      _students = widget.repository.loadAssignedStudents();
+    });
+  }
 
   @override
   Widget build(

@@ -142,6 +142,33 @@ class _AppShellState extends State<AppShell> {
     });
   }
 
+  void _showHelp() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Need help?'),
+        content: Text(
+          widget.role == AppRole.student
+              ? 'Use My learning for lessons, Story Vault for cultural stories, and Build to work on a theme. For account or class access, contact your school.'
+              : 'Use Review Queue to assess submissions, Student Progress to follow assigned learners, and Learning Content or Story Vault to manage published material. For account access, contact your school administrator.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              _navigate(AppDestination.notifications);
+            },
+            child: const Text('Open notifications'),
+          ),
+        ],
+      ),
+    );
+  }
+
   List<AppDestination> get _primaryDestinations =>
       widget.role == AppRole.student
       ? const [
@@ -291,6 +318,7 @@ class _AppShellState extends State<AppShell> {
                         destination: _destination,
                         compact: mobile,
                         onSelect: _navigate,
+                        onHelp: _showHelp,
                         unreadNotificationCount: _unreadNotificationCount,
                       ),
                       Expanded(
@@ -480,6 +508,7 @@ class _TopBar extends StatelessWidget {
     required this.destination,
     required this.compact,
     required this.onSelect,
+    required this.onHelp,
     required this.unreadNotificationCount,
   });
 
@@ -488,6 +517,7 @@ class _TopBar extends StatelessWidget {
   final AppDestination destination;
   final bool compact;
   final ValueChanged<AppDestination> onSelect;
+  final VoidCallback onHelp;
   final int unreadNotificationCount;
 
   @override
@@ -525,7 +555,7 @@ class _TopBar extends StatelessWidget {
         ),
         if (!compact) ...[
           TextButton(
-            onPressed: () => onSelect(AppDestination.notifications),
+            onPressed: onHelp,
             child: const Text('Need help?'),
           ),
           const SizedBox(width: 8),

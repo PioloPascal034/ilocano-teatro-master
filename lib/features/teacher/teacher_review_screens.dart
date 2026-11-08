@@ -39,7 +39,11 @@ class _ReviewQueueScreenState extends State<ReviewQueueScreen> {
     super.dispose();
   }
 
-  void _reload() => setState(() => _queue = widget.repository.loadQueue());
+  void _reload() {
+    setState(() {
+      _queue = widget.repository.loadQueue();
+    });
+  }
 
   List<TeacherSubmission> _visible(List<TeacherSubmission> submissions) =>
       submissions.where((submission) {
